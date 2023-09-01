@@ -54,12 +54,12 @@ async function waitFor(url: String, browser: Browser) {
 
 function startComposeService(serviceName: String){
     console.log(`Starting ${serviceName}`);
-    execSync(`docker compose --env-file test.env  up -d ${serviceName}`);
+    execSync(`docker compose --profile playwright --env-file test.env  up -d ${serviceName}`);
 }
 
 function stopComposeService(serviceName: String){
     console.log(`Stopping ${serviceName}`);
-    execSync(`docker compose --env-file test.env  stop ${serviceName}`);
+    execSync(`docker compose --profile playwright --env-file test.env  stop ${serviceName}`);
 }
 
 function wipeSqlite(){
@@ -187,7 +187,7 @@ async function startVaultwarden(browser: Browser, testInfo: TestInfo, env = {}, 
     }
 
     console.log(`Starting Vaultwarden`);
-    execSync(`docker compose --env-file test.env up -d Vaultwarden`, {
+    execSync(`docker compose --profile playwright --env-file test.env up -d Vaultwarden`, {
         env: { ...env, ...dbConfig(testInfo) },
     });
     await waitFor("/", browser);
@@ -196,7 +196,7 @@ async function startVaultwarden(browser: Browser, testInfo: TestInfo, env = {}, 
 
 async function stopVaultwarden() {
     console.log(`Vaultwarden stopping`);
-    execSync(`docker compose --env-file test.env stop Vaultwarden`);
+    execSync(`docker compose --profile playwright --env-file test.env stop Vaultwarden`);
 }
 
 async function restartVaultwarden(page: Page, testInfo: TestInfo, env, resetDB: Boolean = true) {
