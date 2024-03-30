@@ -52,3 +52,5 @@ jobs:
           targets: ${{ matrix.base_image }}-multi
           set: |
             *.platform=linux/amd64,linux/arm64
+            *.cache-from=type=gha,scope=vaultwarden-${{ matrix.base_image }}
+            *.cache-to=type=gha,scope=vaultwarden-${{ matrix.base_image }},mode=max
