@@ -133,7 +133,7 @@ data-url = "0.3.1"
 bytes = "1.6.0"
 
 # Cache function results (Used for version check and favicon fetching)
-cached = { version = "0.50.0", features = ["async"] }
+cached = { version = "0.51.3", features = ["async"] }
 
 # Used for custom short lived cookie jar during favicon extraction
 cookie = "0.18.1"
