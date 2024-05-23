@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - test
 
     tags:
       - '*'
@@ -14,7 +15,7 @@ jobs:
   # We will skip this check if we are creating a tag, because that has the same hash as a previous run already.
   skip_check:
     runs-on: ubuntu-22.04
-    if: ${{ github.repository == 'dani-garcia/vaultwarden' }}
+    if: ${{ github.repository == 'dfunkt/vaultwarden' }}
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
     steps:
@@ -30,7 +31,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     needs: skip_check
-    if: ${{ needs.skip_check.outputs.should_skip != 'true' && github.repository == 'dani-garcia/vaultwarden' }}
+    if: ${{ needs.skip_check.outputs.should_skip != 'true' && github.repository == 'dfunkt/vaultwarden' }}
     # Start a local docker registry to extract the final Alpine static build binaries
     services:
       registry:
@@ -51,9 +52,14 @@ jobs:
       # QUAY_REPO needs to be 'quay.io/<user>/<repo>'
       # Check for Quay.io credentials in secrets
       HAVE_QUAY_LOGIN: ${{ vars.QUAY_REPO != '' && secrets.QUAY_USERNAME != '' && secrets.QUAY_TOKEN != '' }}
+      PLATFORMS: "['linux/amd64', 'linux/arm64']"
     strategy:
       matrix:
         base_image: ["debian","alpine"]
+
+    outputs:
+      source-version: ${{ steps.determine-version.outputs.SOURCE_VERSION }}
+      platforms: ${{ steps.extract-binaries.outputs.PLTF }}
 
     steps:
       # Checkout the repo
@@ -81,6 +87,7 @@ jobs:
 
       # Determine Base Tags and Source Version
       - name: Determine Base Tags and Source Version
+        id: determine-version
         shell: bash
         run: |
           # Check which main tag we are going to build determined by github.ref_type
@@ -93,10 +100,10 @@ jobs:
           # Get the Source Version for this release
           GIT_EXACT_TAG="$(git describe --tags --abbrev=0 --exact-match 2>/dev/null || true)"
           if [[ -n "${GIT_EXACT_TAG}" ]]; then
-              echo "SOURCE_VERSION=${GIT_EXACT_TAG}" | tee -a "${GITHUB_ENV}"
+              echo "SOURCE_VERSION=${GIT_EXACT_TAG}" | tee -a "${GITHUB_OUTPUT}"
           else
               GIT_LAST_TAG="$(git describe --tags --abbrev=0)"
-              echo "SOURCE_VERSION=${GIT_LAST_TAG}-${SOURCE_COMMIT:0:8}" | tee -a "${GITHUB_ENV}"
+              echo "SOURCE_VERSION=${GIT_LAST_TAG}-${SOURCE_COMMIT:0:8}" | tee -a "${GITHUB_OUTPUT}"
           fi
       # End Determine Base Tags
 
@@ -150,32 +157,24 @@ jobs:
         run: |
           echo "CONTAINER_REGISTRIES=${CONTAINER_REGISTRIES:+${CONTAINER_REGISTRIES},}${{ vars.QUAY_REPO }}" | tee -a "${GITHUB_ENV}"
 
-      - name: Configure build cache from/to
-        shell: bash
-        run: |
-          #
-          # Check if there is a GitHub Container Registry Login and use it for caching
-          if [[ -n "${HAVE_GHCR_LOGIN}" ]]; then
-            echo "BAKE_CACHE_FROM=type=registry,ref=${{ vars.GHCR_REPO }}-buildcache:${{ matrix.base_image }}" | tee -a "${GITHUB_ENV}"
-            echo "BAKE_CACHE_TO=type=registry,ref=${{ vars.GHCR_REPO }}-buildcache:${{ matrix.base_image }},mode=max" | tee -a "${GITHUB_ENV}"
-          else
-            echo "BAKE_CACHE_FROM="
-            echo "BAKE_CACHE_TO="
-          fi
-          #
-
       - name: Add localhost registry
         if: ${{ matrix.base_image == 'alpine' }}
         shell: bash
         run: |
           echo "CONTAINER_REGISTRIES=${CONTAINER_REGISTRIES:+${CONTAINER_REGISTRIES},}localhost:5000/vaultwarden/server" | tee -a "${GITHUB_ENV}"
 
+      - name: Configure bake platforms
+        shell: bash
+        run: |
+          PLATFORMS=$(echo "${{ env.PLATFORMS }}" | tr -d "[' ]")
+          echo "BAKE_PLATFORMS=$PLATFORMS" | tee -a "${GITHUB_ENV}"
+
       - name: Bake ${{ matrix.base_image }} containers
         uses: docker/bake-action@73b0efa7a0e8ac276e0a8d5c580698a942ff10b5 # v4.4.0
         env:
           BASE_TAGS: "${{ env.BASE_TAGS }}"
           SOURCE_COMMIT: "${{ env.SOURCE_COMMIT }}"
-          SOURCE_VERSION: "${{ env.SOURCE_VERSION }}"
+          SOURCE_VERSION: "${{ steps.determine-version.outputs.SOURCE_VERSION }}"
           SOURCE_REPOSITORY_URL: "${{ env.SOURCE_REPOSITORY_URL }}"
           CONTAINER_REGISTRIES: "${{ env.CONTAINER_REGISTRIES }}"
         with:
@@ -184,13 +183,14 @@ jobs:
           files: docker/docker-bake.hcl
           targets: "${{ matrix.base_image }}-multi"
           set: |
-            *.cache-from=${{ env.BAKE_CACHE_FROM }}
-            *.cache-to=${{ env.BAKE_CACHE_TO }}
-
+            *.cache-from=type=gha,scope=${{ matrix.base_image }}
+            *.cache-to=type=gha,scope=${{ matrix.base_image }},mode=max
+            *.platform=${{ env.BAKE_PLATFORMS }}
 
       # Extract the Alpine binaries from the containers
       - name: Extract binaries
         if: ${{ matrix.base_image == 'alpine' }}
+        id: extract-binaries
         shell: bash
         run: |
           # Check which main tag we are going to build determined by github.ref_type
@@ -203,56 +203,44 @@ jobs:
           # After each extraction the image is removed.
           # This is needed because using different platforms doesn't trigger a new pull/download
 
-          # Extract amd64 binary
-          docker create --name amd64 --platform=linux/amd64 "vaultwarden/server:${EXTRACT_TAG}-alpine"
-          docker cp amd64:/vaultwarden vaultwarden-amd64
-          docker rm --force amd64
-          docker rmi --force "vaultwarden/server:${EXTRACT_TAG}-alpine"
+          PLATFORMS=$(echo "${{ env.PLATFORMS }}" | tr -d "[',linux/]")
+          PLTF=($PLATFORMS)
 
-          # Extract arm64 binary
-          docker create --name arm64 --platform=linux/arm64 "vaultwarden/server:${EXTRACT_TAG}-alpine"
-          docker cp arm64:/vaultwarden vaultwarden-arm64
-          docker rm --force arm64
-          docker rmi --force "vaultwarden/server:${EXTRACT_TAG}-alpine"
+          for DOCKER_ARCH in "${PLTF[@]}"; do
+            docker create --name "${DOCKER_ARCH}" --platform="linux/${DOCKER_ARCH/v//v}" "vaultwarden/server:${EXTRACT_TAG}-alpine"
+            docker cp "${DOCKER_ARCH}":/vaultwarden "vaultwarden-${DOCKER_ARCH}"
+            docker rm --force "${DOCKER_ARCH}"
+            docker rmi --force "vaultwarden/server:${EXTRACT_TAG}-alpine"
+          done
 
-          # Extract armv7 binary
-          docker create --name armv7 --platform=linux/arm/v7 "vaultwarden/server:${EXTRACT_TAG}-alpine"
-          docker cp armv7:/vaultwarden vaultwarden-armv7
-          docker rm --force armv7
-          docker rmi --force "vaultwarden/server:${EXTRACT_TAG}-alpine"
+          PLATFORMS=$(echo "${{ env.PLATFORMS }}" | tr -d "linux/")
+          echo "PLTF=$PLATFORMS" | tee -a "$GITHUB_OUTPUT"
 
-          # Extract armv6 binary
-          docker create --name armv6 --platform=linux/arm/v6 "vaultwarden/server:${EXTRACT_TAG}-alpine"
-          docker cp armv6:/vaultwarden vaultwarden-armv6
-          docker rm --force armv6
-          docker rmi --force "vaultwarden/server:${EXTRACT_TAG}-alpine"
+      - name: Binary cache between jobs
+        if: ${{ matrix.base_image == 'alpine' }}
+        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        with:
+          path: vaultwarden-*
+          key: vaultwarden-binaries-${{ steps.determine-version.outputs.SOURCE_VERSION }}
+
+  upload-binaries:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    needs: docker-build
+    strategy:
+      matrix:
+        platforms: ${{ fromJSON(needs.docker-build.outputs.platforms) }}
+
+    steps:
+      - name: Binary cache between jobs
+        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        with:
+          path: vaultwarden-*
+          key: vaultwarden-binaries-${{ needs.docker-build.outputs.source-version }}
 
       # Upload artifacts to Github Actions
-      - name: "Upload amd64 artifact"
+      - name: "Upload artifacts"
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        if: ${{ matrix.base_image == 'alpine' }}
         with:
-          name: vaultwarden-${{ env.SOURCE_VERSION }}-linux-amd64
-          path: vaultwarden-amd64
-
-      - name: "Upload arm64 artifact"
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        if: ${{ matrix.base_image == 'alpine' }}
-        with:
-          name: vaultwarden-${{ env.SOURCE_VERSION }}-linux-arm64
-          path: vaultwarden-arm64
-
-      - name: "Upload armv7 artifact"
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        if: ${{ matrix.base_image == 'alpine' }}
-        with:
-          name: vaultwarden-${{ env.SOURCE_VERSION }}-linux-armv7
-          path: vaultwarden-armv7
-
-      - name: "Upload armv6 artifact"
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        if: ${{ matrix.base_image == 'alpine' }}
-        with:
-          name: vaultwarden-${{ env.SOURCE_VERSION }}-linux-armv6
-          path: vaultwarden-armv6
-      # End Upload artifacts to Github Actions
+          name: vaultwarden-${{ needs.docker-build.outputs.source-version }}-linux-${{ matrix.platforms }}
+          path: vaultwarden-${{ matrix.platforms }}
