@@ -11,6 +11,8 @@ on:
   push:
     branches:
       - main
+      - main-upstream
+      - test
 
     tags:
       # https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
@@ -36,7 +38,6 @@ env:
 jobs:
   docker-build:
     name: Build Vaultwarden containers
-    if: ${{ github.repository == 'dani-garcia/vaultwarden' }}
     permissions:
       packages: write # Needed to upload packages and artifacts
       contents: read
@@ -49,8 +50,8 @@ jobs:
       SOURCE_REPOSITORY_URL: "https://github.com/${{ github.repository }}"
     strategy:
       matrix:
-        arch: ["amd64", "arm64", "arm/v7", "arm/v6"]
-        base_image: ["debian","alpine"]
+        arch: ["amd64", "arm64"]
+        base_image: ${{ fromJSON(vars.BASE_IMAGE) }}
 
     steps:
       - name: Initialize QEMU binfmt support
@@ -198,7 +199,7 @@ jobs:
             *.platform=linux/${{ matrix.arch }}
             ${{ env.TAGS }}
             *.output=type=local,dest=./output
-            *.output=type=image,push-by-digest=true,name-canonical=true,push=true
+            *.output=type=image,push-by-digest=true,name-canonical=true,push=true,compression=zstd
 
       - name: Extract digest SHA
         env:
@@ -253,7 +254,7 @@ jobs:
       id-token: write # Needed to mint the OIDC token necessary to request a Sigstore signing certificate
     strategy:
       matrix:
-        base_image: ["debian","alpine"]
+        base_image: ${{ fromJSON(vars.BASE_IMAGE) }}
 
     steps:
       - name: Download digests
@@ -320,7 +321,11 @@ jobs:
           if [[ "${REF_TYPE}" == "tag" ]]; then
             echo "BASE_TAGS=latest${BASE_IMAGE_TAG},${GITHUB_REF#refs/*/}${BASE_IMAGE_TAG}${BASE_IMAGE_TAG//-/,}" | tee -a "${GITHUB_ENV}"
           elif [[ "${REF_TYPE}" == "branch" ]]; then
-            echo "BASE_TAGS=testing${BASE_IMAGE_TAG}" | tee -a "${GITHUB_ENV}"
+            if [[ "${REF_NAME}" == "main-upstream" ]]; then
+              echo "BASE_TAGS=latest${BASE_IMAGE_TAG}" | tee -a "${GITHUB_ENV}"
+            else
+              echo "BASE_TAGS=testing${BASE_IMAGE_TAG}" | tee -a "${GITHUB_ENV}"
+            fi
           fi
 
       - name: Create manifest list, push it and extract digest SHA
