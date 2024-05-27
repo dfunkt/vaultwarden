@@ -33,6 +33,7 @@ FROM --platform=linux/amd64 docker.io/vaultwarden/web-vault@sha256:1a867b4b175e8
 ## NOTE: The Alpine Base Images do not support other platforms then linux/amd64
 ## And for Alpine we define all build images here, they will only be loaded when actually used
 FROM --platform=linux/amd64 ghcr.io/blackdex/rust-musl:x86_64-musl-stable-1.80.0 AS build_amd64
+FROM --platform=linux/amd64 ghcr.io/blackdex/rust-musl:x86_64-musl-stable-1.80.0 AS build_amd64v3
 FROM --platform=linux/amd64 ghcr.io/blackdex/rust-musl:aarch64-musl-stable-1.80.0 AS build_arm64
 FROM --platform=linux/amd64 ghcr.io/blackdex/rust-musl:armv7-musleabihf-stable-1.80.0 AS build_armv7
 FROM --platform=linux/amd64 ghcr.io/blackdex/rust-musl:arm-musleabi-stable-1.80.0 AS build_armv6
@@ -72,7 +73,11 @@ RUN echo "export CARGO_TARGET=${RUST_MUSL_CROSS_TARGET}" >> /env-cargo && \
     cat /env-cargo
 
 RUN source /env-cargo && \
-    rustup target add "${CARGO_TARGET}"
+    rustup target add "${CARGO_TARGET}" && \
+    # Set Rust target to x86-64-v3
+    if [[ "${TARGETARCH}${TARGETVARIANT}" == amd64v* ]] ; then echo "export RUSTFLAGS='-Ctarget_cpu=x86-64-${TARGETVARIANT}'" >> /env-cargo ; fi && \
+    # Output the current contents of the file
+    cat /env-cargo
 
 # Copies over *only* your manifests and build files
 COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
