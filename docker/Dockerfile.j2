@@ -135,7 +135,10 @@ RUN echo "export CARGO_TARGET=${RUST_MUSL_CROSS_TARGET}" >> /env-cargo && \
 
 {% endif %}
 RUN source /env-cargo && \
-    rustup target add "${CARGO_TARGET}"
+    rustup target add "${CARGO_TARGET}" && \
+    # Set target CPU to the specified x86-64 microarchitecture level (if present)
+    if [[ "${TARGETARCH}${TARGETVARIANT}" == amd64v* ]] ; \
+    then echo "export RUSTFLAGS='-C target-cpu=x86-64-${TARGETVARIANT}'" >> /env-cargo ; cat /env-cargo ; fi
 
 # Copies over *only* your manifests and build files
 COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
