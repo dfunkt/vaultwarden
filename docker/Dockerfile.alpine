@@ -77,6 +77,11 @@ RUN source /env-cargo && \
 COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
 COPY ./macros ./macros
 
+# Set target CPU to the specified x86-64 microarchitecture level (if present)
+RUN source /env-cargo && \
+    if [[ "${TARGETARCH}" == "amd64" && -n "${TARGETVARIANT}" ]] ; \
+    then echo "export RUSTFLAGS='-C target-cpu=x86-64-${TARGETVARIANT}'" >> /env-cargo ; cat /env-cargo ; fi
+
 ARG CARGO_PROFILE=release
 
 # Configure the DB ARG as late as possible to not invalidate the cached layers above
