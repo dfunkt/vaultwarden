@@ -54,9 +54,6 @@ FROM --platform=$BUILDPLATFORM {{ build_stage_image[base].image }} AS build
 {% if base == "debian" %}
 COPY --from=xx / /
 {% endif %}
-ARG TARGETARCH
-ARG TARGETVARIANT
-ARG TARGETPLATFORM
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -71,18 +68,41 @@ ENV DEBIAN_FRONTEND=noninteractive \
     # Use PostgreSQL v17 during Alpine/MUSL builds instead of the default v16
     # Debian Trixie uses libpq v17
     PQ_LIB_DIR="/usr/local/musl/pq17/lib"
-{%- endif %}
+{% endif %}
 
 {% if base == "debian" %}
 # Install clang && xx-c-essentials to get `xx-cargo` working
 # Install pkg-config to allow amd64 builds to find all libraries
 # Install git so build.rs can determine the correct version
-# Install the libc cross packages based upon the debian-arch
 RUN apt-get update && \
     apt-get install -y \
         --no-install-recommends \
         clang \
-        git && \
+        git
+{% endif %}
+
+# Create CARGO_HOME folder and don't download rust docs
+RUN mkdir -pv "${CARGO_HOME}" && \
+    rustup set profile minimal
+
+# Creates a dummy project used to grab dependencies
+RUN USER=root cargo new --bin /app
+WORKDIR /app
+
+# Copies over *only* your manifests and build files
+COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
+COPY ./macros ./macros
+
+# Fetch dependencies only for the build platform, others will be cross-compiled
+RUN cargo fetch
+
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG TARGETPLATFORM
+
+{% if base == "debian" %}
+# Install the libc cross packages based upon the debian-arch
+RUN apt-get update && \
     xx-apt-get install -y \
         --no-install-recommends \
         libpq-dev \
@@ -96,14 +116,6 @@ RUN apt-get update && \
     echo "export CARGO_TARGET=$(xx-cargo --print-target-triple)" >> /env-cargo
 {% endif %}
 
-# Create CARGO_HOME folder and don't download rust docs
-RUN mkdir -pv "${CARGO_HOME}" && \
-    rustup set profile minimal
-
-# Creates a dummy project used to grab dependencies
-RUN USER=root cargo new --bin /app
-WORKDIR /app
-
 {% if base == "alpine" %}
 # Environment variables for Cargo on Alpine based builds
 RUN echo "export CARGO_TARGET=${RUST_MUSL_CROSS_TARGET}" >> /env-cargo && \
@@ -113,10 +125,6 @@ RUN echo "export CARGO_TARGET=${RUST_MUSL_CROSS_TARGET}" >> /env-cargo && \
 {% endif %}
 RUN source /env-cargo && \
     rustup target add "${CARGO_TARGET}"
-
-# Copies over *only* your manifests and build files
-COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
-COPY ./macros ./macros
 
 # Set target CPU to the specified x86-64 microarchitecture level (if present)
 RUN source /env-cargo && \
@@ -224,8 +232,8 @@ WORKDIR /
 
 COPY docker/healthcheck.sh docker/start.sh /
 
-COPY --from=vault /web-vault ./web-vault
-COPY --from=build /app/target/final/vaultwarden .
+COPY --link --from=vault /web-vault ./web-vault
+COPY --link --from=build /app/target/final/vaultwarden .
 
 HEALTHCHECK --interval=60s --timeout=10s CMD ["/healthcheck.sh"]
 
