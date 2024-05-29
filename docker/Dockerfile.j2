@@ -49,9 +49,6 @@ FROM --platform={{ build_stage_image[base].platform }} {{ build_stage_image[base
 {% if base == "debian" %}
 COPY --from=xx / /
 {% endif %}
-ARG TARGETARCH
-ARG TARGETVARIANT
-ARG TARGETPLATFORM
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -73,13 +70,37 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # Install clang to get `xx-cargo` working
 # Install pkg-config to allow amd64 builds to find all libraries
 # Install git so build.rs can determine the correct version
-# Install the libc cross packages based upon the debian-arch
 RUN apt-get update && \
     apt-get install -y \
         --no-install-recommends \
         clang \
         pkg-config \
-        git \
+        git
+
+{% endif %}
+# Create CARGO_HOME folder and don't download rust docs
+RUN mkdir -pv "${CARGO_HOME}" && \
+    rustup set profile minimal
+
+# Creates a dummy project used to grab dependencies
+RUN USER=root cargo new --bin /app
+WORKDIR /app
+
+# Copies over *only* your manifests and build files
+COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
+
+# Fetch dependencies only for the build platform, others will be cross-compiled
+RUN cargo fetch
+
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG TARGETPLATFORM
+{% if base == "debian" %}
+
+# Install the libc cross packages based upon the debian-arch
+RUN apt-get update && \
+    apt-get install -y \
+        --no-install-recommends \
         "libc6-$(xx-info debian-arch)-cross" \
         "libc6-dev-$(xx-info debian-arch)-cross" \
         "linux-libc-dev-$(xx-info debian-arch)-cross" && \
@@ -98,14 +119,6 @@ RUN apt-get update && \
     # Run xx-cargo early, since it sometimes seems to break when run at a later stage
     echo "export CARGO_TARGET=$(xx-cargo --print-target-triple)" >> /env-cargo
 {% endif %}
-
-# Create CARGO_HOME folder and don't download rust docs
-RUN mkdir -pv "${CARGO_HOME}" && \
-    rustup set profile minimal
-
-# Creates a dummy project used to grab dependencies
-RUN USER=root cargo new --bin /app
-WORKDIR /app
 
 {% if base == "debian" %}
 # Environment variables for Cargo on Debian based builds
@@ -139,14 +152,12 @@ RUN echo "export CARGO_TARGET=${RUST_MUSL_CROSS_TARGET}" >> /env-cargo && \
 
 {% endif %}
 RUN source /env-cargo && \
-    rustup target add "${CARGO_TARGET}" && \
-    # Set target CPU to the specified x86-64 microarchitecture level (if present)
-    if [[ "${TARGETARCH}${TARGETVARIANT}" == amd64v* ]] ; then echo "export RUSTFLAGS='-Ctarget_cpu=x86-64-${TARGETVARIANT}'" >> /env-cargo ; fi && \
+    rustup target add "${CARGO_TARGET}"
+
+# Set target CPU to the specified x86-64 microarchitecture level (if present)
+RUN if [[ "${TARGETARCH}${TARGETVARIANT}" == amd64v* ]] ; then echo "export RUSTFLAGS='-Ctarget_cpu=x86-64-${TARGETVARIANT}'" >> /env-cargo ; fi && \
     # Output the current contents of the file
     cat /env-cargo
-
-# Copies over *only* your manifests and build files
-COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
 
 ARG CARGO_PROFILE=release
 
