@@ -38,9 +38,6 @@ FROM --platform=linux/amd64 docker.io/tonistiigi/xx@sha256:c64defb9ed5a91eacb37f
 # hadolint ignore=DL3006
 FROM --platform=$BUILDPLATFORM docker.io/library/rust:1.92.0-slim-trixie AS build
 COPY --from=xx / /
-ARG TARGETARCH
-ARG TARGETVARIANT
-ARG TARGETPLATFORM
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -54,13 +51,36 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # Install clang to get `xx-cargo` working
 # Install pkg-config to allow amd64 builds to find all libraries
 # Install git so build.rs can determine the correct version
-# Install the libc cross packages based upon the debian-arch
 RUN apt-get update && \
     apt-get install -y \
         --no-install-recommends \
         clang \
         pkg-config \
-        git \
+        git
+
+# Create CARGO_HOME folder and don't download rust docs
+RUN mkdir -pv "${CARGO_HOME}" && \
+    rustup set profile minimal
+
+# Creates a dummy project used to grab dependencies
+RUN USER=root cargo new --bin /app
+WORKDIR /app
+
+# Copies over *only* your manifests and build files
+COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
+COPY ./macros ./macros
+
+# Fetch dependencies only for the build platform, others will be cross-compiled
+RUN cargo fetch
+
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG TARGETPLATFORM
+
+# Install the libc cross packages based upon the debian-arch
+RUN apt-get update && \
+    apt-get install -y \
+        --no-install-recommends \
         "libc6-$(xx-info debian-arch)-cross" \
         "libc6-dev-$(xx-info debian-arch)-cross" \
         "linux-libc-dev-$(xx-info debian-arch)-cross" && \
@@ -74,14 +94,6 @@ RUN apt-get update && \
         zlib1g-dev && \
     # Run xx-cargo early, since it sometimes seems to break when run at a later stage
     echo "export CARGO_TARGET=$(xx-cargo --print-target-triple)" >> /env-cargo
-
-# Create CARGO_HOME folder and don't download rust docs
-RUN mkdir -pv "${CARGO_HOME}" && \
-    rustup set profile minimal
-
-# Creates a dummy project used to grab dependencies
-RUN USER=root cargo new --bin /app
-WORKDIR /app
 
 # Environment variables for Cargo on Debian based builds
 ARG TARGET_PKG_CONFIG_PATH
@@ -107,14 +119,12 @@ RUN source /env-cargo && \
     cat /env-cargo
 
 RUN source /env-cargo && \
-    rustup target add "${CARGO_TARGET}" && \
-    # Set target CPU to the specified x86-64 microarchitecture level (if present)
+    rustup target add "${CARGO_TARGET}"
+
+# Set target CPU to the specified x86-64 microarchitecture level (if present)
+RUN source /env-cargo && \
     if [[ "${TARGETARCH}" == "amd64" && -n "${TARGETVARIANT}" ]] ; \
     then echo "export RUSTFLAGS='-C target-cpu=x86-64-${TARGETVARIANT}'" >> /env-cargo ; cat /env-cargo ; fi
-
-# Copies over *only* your manifests and build files
-COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
-COPY ./macros ./macros
 
 ARG CARGO_PROFILE=release
 
@@ -192,8 +202,8 @@ WORKDIR /
 
 COPY docker/healthcheck.sh docker/start.sh /
 
-COPY --from=vault /web-vault ./web-vault
-COPY --from=build /app/target/final/vaultwarden .
+COPY --link --from=vault /web-vault ./web-vault
+COPY --link --from=build /app/target/final/vaultwarden .
 
 HEALTHCHECK --interval=60s --timeout=10s CMD ["/healthcheck.sh"]
 
