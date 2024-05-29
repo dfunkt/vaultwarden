@@ -37,9 +37,6 @@ FROM --platform=linux/amd64 docker.io/tonistiigi/xx@sha256:0cd3f05c72d6c9b038eb1
 # hadolint ignore=DL3006
 FROM --platform=$BUILDPLATFORM docker.io/library/rust:1.79.0-slim-bookworm as build
 COPY --from=xx / /
-ARG TARGETARCH
-ARG TARGETVARIANT
-ARG TARGETPLATFORM
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -54,13 +51,35 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # Install clang to get `xx-cargo` working
 # Install pkg-config to allow amd64 builds to find all libraries
 # Install git so build.rs can determine the correct version
-# Install the libc cross packages based upon the debian-arch
 RUN apt-get update && \
     apt-get install -y \
         --no-install-recommends \
         clang \
         pkg-config \
-        git \
+        git
+
+# Create CARGO_HOME folder and don't download rust docs
+RUN mkdir -pv "${CARGO_HOME}" && \
+    rustup set profile minimal
+
+# Creates a dummy project used to grab dependencies
+RUN USER=root cargo new --bin /app
+WORKDIR /app
+
+# Copies over *only* your manifests and build files
+COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
+
+# Fetch dependencies only for the build platform, others will be cross-compiled
+RUN cargo fetch
+
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG TARGETPLATFORM
+
+# Install the libc cross packages based upon the debian-arch
+RUN apt-get update && \
+    apt-get install -y \
+        --no-install-recommends \
         "libc6-$(xx-info debian-arch)-cross" \
         "libc6-dev-$(xx-info debian-arch)-cross" \
         "linux-libc-dev-$(xx-info debian-arch)-cross" && \
@@ -78,14 +97,6 @@ RUN apt-get update && \
     dpkg --force-all -i ./libmariadb-dev*.deb && \
     # Run xx-cargo early, since it sometimes seems to break when run at a later stage
     echo "export CARGO_TARGET=$(xx-cargo --print-target-triple)" >> /env-cargo
-
-# Create CARGO_HOME folder and don't download rust docs
-RUN mkdir -pv "${CARGO_HOME}" && \
-    rustup set profile minimal
-
-# Creates a dummy project used to grab dependencies
-RUN USER=root cargo new --bin /app
-WORKDIR /app
 
 # Environment variables for Cargo on Debian based builds
 ARG ARCH_OPENSSL_LIB_DIR \
@@ -111,13 +122,9 @@ RUN source /env-cargo && \
     cat /env-cargo
 
 RUN source /env-cargo && \
-    rustup target add "${CARGO_TARGET}" && \
-    if [[ "${TARGETARCH}${TARGETVARIANT}" == amd64v* ]] ; then echo "export RUSTFLAGS='-Ctarget_cpu=x86-64-${TARGETVARIANT}'" >> /env-cargo ; fi && \
-    # Output the current contents of the file
-    cat /env-cargo
+    rustup target add "${CARGO_TARGET}"
 
-# Copies over *only* your manifests and build files
-COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
+RUN if [[ "${TARGETARCH}${TARGETVARIANT}" == amd64v* ]] ; then echo "export RUSTFLAGS='-Ctarget_cpu=x86-64-${TARGETVARIANT}'" >> /env-cargo ; fi
 
 ARG CARGO_PROFILE=release
 
