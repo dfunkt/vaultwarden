@@ -41,9 +41,6 @@ FROM --platform=$BUILDPLATFORM ghcr.io/blackdex/rust-musl:arm-musleabi-stable-1.
 ########################## BUILD IMAGE ##########################
 # hadolint ignore=DL3006
 FROM --platform=$BUILDPLATFORM build_${TARGETARCH}${TARGETVARIANT} AS build
-ARG TARGETARCH
-ARG TARGETVARIANT
-ARG TARGETPLATFORM
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -58,7 +55,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     # Debian Trixie uses libpq v17
     PQ_LIB_DIR="/usr/local/musl/pq17/lib"
 
-
 # Create CARGO_HOME folder and don't download rust docs
 RUN mkdir -pv "${CARGO_HOME}" && \
     rustup set profile minimal
@@ -67,20 +63,29 @@ RUN mkdir -pv "${CARGO_HOME}" && \
 RUN USER=root cargo new --bin /app
 WORKDIR /app
 
+# Copies over *only* your manifests and build files
+COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
+COPY ./macros ./macros
+
+# Fetch dependencies only for the build platform, others will be cross-compiled
+RUN cargo fetch
+
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG TARGETPLATFORM
+
 # Environment variables for Cargo on Alpine based builds
 RUN echo "export CARGO_TARGET=${RUST_MUSL_CROSS_TARGET}" >> /env-cargo && \
     # Output the current contents of the file
     cat /env-cargo
 
 RUN source /env-cargo && \
-    rustup target add "${CARGO_TARGET}" && \
-    # Set target CPU to the specified x86-64 microarchitecture level (if present)
+    rustup target add "${CARGO_TARGET}"
+
+# Set target CPU to the specified x86-64 microarchitecture level (if present)
+RUN source /env-cargo && \
     if [[ "${TARGETARCH}" == "amd64" && -n "${TARGETVARIANT}" ]] ; \
     then echo "export RUSTFLAGS='-C target-cpu=x86-64-${TARGETVARIANT}'" >> /env-cargo ; cat /env-cargo ; fi
-
-# Copies over *only* your manifests and build files
-COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
-COPY ./macros ./macros
 
 ARG CARGO_PROFILE=release
 
@@ -155,8 +160,8 @@ WORKDIR /
 
 COPY docker/healthcheck.sh docker/start.sh /
 
-COPY --from=vault /web-vault ./web-vault
-COPY --from=build /app/target/final/vaultwarden .
+COPY --link --from=vault /web-vault ./web-vault
+COPY --link --from=build /app/target/final/vaultwarden .
 
 HEALTHCHECK --interval=60s --timeout=10s CMD ["/healthcheck.sh"]
 
