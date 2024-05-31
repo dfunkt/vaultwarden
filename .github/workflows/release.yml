@@ -32,12 +32,7 @@ jobs:
     timeout-minutes: 120
     #needs: skip_check
     #if: ${{ needs.skip_check.outputs.should_skip != 'true' && github.repository == 'dani-garcia/vaultwarden' }}
-    # Start a local docker registry to extract the final Alpine static build binaries
-    services:
-      registry:
-        image: registry:2
-        ports:
-          - 5000:5000
+
     env:
       SOURCE_COMMIT: ${{ github.sha }}
       SOURCE_REPOSITORY_URL: "https://github.com/${{ github.repository }}"
@@ -169,12 +164,6 @@ jobs:
           fi
           #
 
-      - name: Add localhost registry
-        if: ${{ matrix.base_image == 'alpine' }}
-        shell: bash
-        run: |
-          echo "CONTAINER_REGISTRIES=${CONTAINER_REGISTRIES:+${CONTAINER_REGISTRIES},}localhost:5000/vaultwarden/server" | tee -a "${GITHUB_ENV}"
-
       - name: Configure bake platforms
         shell: bash
         run: |
@@ -191,13 +180,14 @@ jobs:
           CONTAINER_REGISTRIES: "${{ env.CONTAINER_REGISTRIES }}"
         with:
           pull: true
-          push: true
           files: docker/docker-bake.hcl
           targets: "${{ matrix.base_image }}-multi"
           set: |
             *.cache-from=${{ env.BAKE_CACHE_FROM }}
             *.cache-to=${{ env.BAKE_CACHE_TO }}
             *.platform=${{ env.BAKE_PLATFORMS }}
+            *.output=type=local,dest=/tmp/vaultwarden
+            *.output=type=registry
 
       # Extract the Alpine binaries from the containers
       - name: Extract binaries
@@ -205,38 +195,14 @@ jobs:
         id: extract-binaries
         shell: bash
         run: |
-          # Check which main tag we are going to build determined by github.ref_type
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            EXTRACT_TAG="latest"
-          elif [[ "${{ github.ref_type }}" == "branch" ]]; then
-            if [[ "${{ github.ref_name }}" == "main" ]]; then
-              EXTRACT_TAG="latest"
-            else
-              EXTRACT_TAG="testing"
-            fi
-          fi
-
-          # After each extraction the image is removed.
-          # This is needed because using different platforms doesn't trigger a new pull/download
-
-          PLATFORMS=$(echo "${{ env.PLATFORMS }}" | tr -d "[',linux/]")
-          PLTF=($PLATFORMS)
-
-          for DOCKER_ARCH in "${PLTF[@]}"; do
-            docker create --name "${DOCKER_ARCH}" --platform="linux/${DOCKER_ARCH/v//v}" "localhost:5000/vaultwarden/server:${EXTRACT_TAG}-alpine"
-            docker cp "${DOCKER_ARCH}":/vaultwarden "vaultwarden-${DOCKER_ARCH}"
-            docker rm --force "${DOCKER_ARCH}"
-            docker rmi --force "localhost:5000/vaultwarden/server:${EXTRACT_TAG}-alpine"
-          done
-
-          PLATFORMS=$(echo "${{ env.PLATFORMS }}" | tr -d "linux/")
+          PLATFORMS=$(echo "${{ env.PLATFORMS }}" | tr '/' '_')
           echo "PLTF=$PLATFORMS" | tee -a "$GITHUB_OUTPUT"
 
       - name: Binary cache between jobs
         if: ${{ matrix.base_image == 'alpine' }}
         uses: actions/cache/save@3624ceb22c1c5a301c8db4169662070a689d9ea8 # v4.1.1
         with:
-          path: vaultwarden-*
+          path: /tmp/vaultwarden/
           key: vaultwarden-binaries-${{ steps.determine-version.outputs.SOURCE_VERSION }}
 
   upload-binaries:
@@ -251,12 +217,12 @@ jobs:
       - name: Binary cache between jobs
         uses: actions/cache/restore@3624ceb22c1c5a301c8db4169662070a689d9ea8 # v4.1.1
         with:
-          path: vaultwarden-*
+          path: /tmp/vaultwarden/
           key: vaultwarden-binaries-${{ needs.docker-build.outputs.source-version }}
 
       # Upload artifacts to Github Actions
       - name: "Upload artifacts"
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
-          name: vaultwarden-${{ needs.docker-build.outputs.source-version }}-linux-${{ matrix.platforms }}
-          path: vaultwarden-${{ matrix.platforms }}
+          name: vaultwarden-${{ needs.docker-build.outputs.source-version }}-${{ matrix.platforms }}
+          path: /tmp/vaultwarden/${{ matrix.platforms }}/vaultwarden
