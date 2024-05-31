@@ -28,12 +28,7 @@ jobs:
       id-token: write # Needed to mint the OIDC token necessary to request a Sigstore signing certificate
     runs-on: ubuntu-24.04
     timeout-minutes: 120
-    # Start a local docker registry to extract the compiled binaries to upload as artifacts and attest them
-    services:
-      registry:
-        image: registry@sha256:1fc7de654f2ac1247f0b67e8a459e273b0993be7d2beda1f3f56fbf1001ed3e7 # v3.0.0
-        ports:
-          - 5000:5000
+
     env:
       SOURCE_COMMIT: ${{ github.sha }}
       SOURCE_REPOSITORY_URL: "https://github.com/${{ github.repository }}"
@@ -73,8 +68,6 @@ jobs:
           buildkitd-config-inline: |
             [worker.oci]
               max-parallelism = 3
-          driver-opts: |
-            network=host
 
       # Checkout the repo
       - name: Checkout
@@ -180,16 +173,12 @@ jobs:
           fi
           #
 
-      - name: Add localhost registry
-        shell: bash
-        run: |
-          echo "CONTAINER_REGISTRIES=${CONTAINER_REGISTRIES:+${CONTAINER_REGISTRIES},}localhost:5000/vaultwarden/server" | tee -a "${GITHUB_ENV}"
-
-      - name: Configure bake platforms
+      - name: Configure bake
         shell: bash
         run: |
           PLATFORMS=$(echo "${{ env.PLATFORMS }}" | tr -d "[' ]")
           echo "BAKE_PLATFORMS=$PLATFORMS" | tee -a "${GITHUB_ENV}"
+          mkdir /tmp/vaultwarden
 
       - name: Bake ${{ matrix.base_image }} containers
         id: bake_vw
@@ -202,7 +191,6 @@ jobs:
           CONTAINER_REGISTRIES: "${{ env.CONTAINER_REGISTRIES }}"
         with:
           pull: true
-          push: true
           source: .
           files: docker/docker-bake.hcl
           targets: "${{ matrix.base_image }}-multi"
@@ -210,6 +198,8 @@ jobs:
             *.cache-from=${{ env.BAKE_CACHE_FROM }}
             *.cache-to=${{ env.BAKE_CACHE_TO }}
             *.platform=${{ env.BAKE_PLATFORMS }}
+            *.output=type=local,dest=/tmp/vaultwarden
+            *.output=type=registry
 
       - name: Extract digest SHA
         shell: bash
@@ -250,55 +240,29 @@ jobs:
         id: extract-binaries
         shell: bash
         env:
-          REF_NAME: ${{ github.ref_name }}
-          REF_TYPE: ${{ github.ref_type }}
           BASE_IMAGE: ${{ matrix.base_image }}
         run: |
-          # Check which main tag we are going to build determined by ref_type
-          if [[ "${REF_TYPE}" == "tag" ]]; then
-            EXTRACT_TAG="latest"
-          elif [[ "${REF_TYPE}" == "branch" ]]; then
-            if [[ "${REF_NAME}" == "main" ]]; then
-              EXTRACT_TAG="latest"
-            else
-              EXTRACT_TAG="testing"
-            fi
-          fi
-
-          # Check which base_image was used and append -alpine if needed
-          if [[ "${BASE_IMAGE}" == "alpine" ]]; then
-            EXTRACT_TAG="${EXTRACT_TAG}-alpine"
-          fi
-
-          # After each extraction the image is removed.
-          # This is needed because using different platforms doesn't trigger a new pull/download
-
-          PLATFORMS=$(echo "${{ env.PLATFORMS }}" | tr -d "[',linux/]")
-          PLTF=($PLATFORMS)
-
-          for DOCKER_ARCH in "${PLTF[@]}"; do
-            docker create --name "${DOCKER_ARCH}" --platform="linux/${DOCKER_ARCH/v//v}" "localhost:5000/vaultwarden/server:${EXTRACT_TAG}"
-            docker cp "${DOCKER_ARCH}":/vaultwarden "vaultwarden-${DOCKER_ARCH}-${BASE_IMAGE}"
-            docker rm --force "${DOCKER_ARCH}"
-            docker rmi --force "localhost:5000/vaultwarden/server:${EXTRACT_TAG}"
+          for dir in /tmp/vaultwarden/*/; do
+            dirname=$(basename "$dir")
+            mv "${dir}vaultwarden" "${dir}vaultwarden-${dirname}-${BASE_IMAGE}"
           done
 
-          PLATFORMS=$(echo "${{ env.PLATFORMS }}" | tr -d "linux/")
+          PLATFORMS=$(echo "${{ env.PLATFORMS }}" | tr '/' '_')
           echo "PLTF=$PLATFORMS" | tee -a "$GITHUB_OUTPUT"
 
       # Attest the binaries
       - name: "Attest artifacts ${{ matrix.base_image }}"
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
         with:
-          subject-path: vaultwarden-*
+          subject-path: /tmp/vaultwarden/*/vaultwarden-*
 
-      - name: Cache between jobs
+      - name: Cache between jobs ${{ matrix.base_image }}
         uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         env:
           BASE_IMAGE: ${{ matrix.base_image }}
         with:
-          path: vaultwarden-*-${BASE_IMAGE}
-          key: vaultwarden-binaries-${{ steps.determine-version.outputs.SOURCE_VERSION }}-${BASE_IMAGE}
+          path: /tmp/vaultwarden/
+          key: vaultwarden-binaries-${{ steps.determine-version.outputs.SOURCE_VERSION }}-${{ env.BASE_IMAGE }}
 
   upload-artifacts:
     name: Upload artifacts
@@ -315,15 +279,15 @@ jobs:
       MATRIX_PLATFORMS: ${{ matrix.platforms }}
 
     steps:
-      - name: Cache between jobs
+      - name: Cache between jobs ${{ matrix.base_image }}
         uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
-          path: vaultwarden-*-${BASE_IMAGE}
-          key: vaultwarden-binaries-${{ needs.docker-build.outputs.source-version }}-${BASE_IMAGE}
+          path: /tmp/vaultwarden/
+          key: vaultwarden-binaries-${{ needs.docker-build.outputs.source-version }}-${{ env.BASE_IMAGE }}
 
       # Upload artifacts to Github Actions
-      - name: "Upload artifacts"
+      - name: "Upload artifacts ${{ matrix.base_image }}"
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: vaultwarden-${{ needs.docker-build.outputs.source-version }}-linux-${MATRIX_PLATFORMS}-${BASE_IMAGE}
-          path: vaultwarden-${MATRIX_PLATFORMS}-${BASE_IMAGE}
+          name: vaultwarden-${{ needs.docker-build.outputs.source-version }}-${{ env.MATRIX_PLATFORMS }}-${{ env.BASE_IMAGE }}
+          path: /tmp/vaultwarden/${{ env.MATRIX_PLATFORMS }}/vaultwarden-*
