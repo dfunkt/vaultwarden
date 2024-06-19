@@ -20,13 +20,13 @@
 # - From the command line:
 #     $ docker pull docker.io/vaultwarden/web-vault:{{ vault_version }}
 #     $ docker image inspect --format "{{ '{{' }}.RepoDigests}}" docker.io/vaultwarden/web-vault:{{ vault_version }}
-#     [docker.io/vaultwarden/web-vault@{{ vault_image_digest }}]
+#     [ghcr.io/dfunkt/bw_web_builds@{{ vault_image_digest }}]
 #
 # - Conversely, to get the tag name from the digest:
-#     $ docker image inspect --format "{{ '{{' }}.RepoTags}}" docker.io/vaultwarden/web-vault@{{ vault_image_digest }}
+#     $ docker image inspect --format "{{ '{{' }}.RepoTags}}" ghcr.io/dfunkt/bw_web_builds@{{ vault_image_digest }}
 #     [docker.io/vaultwarden/web-vault:{{ vault_version }}]
 #
-FROM --platform=linux/amd64 docker.io/vaultwarden/web-vault@{{ vault_image_digest }} as vault
+FROM --platform=linux/amd64 ghcr.io/dfunkt/bw_web_builds@{{ vault_image_digest }} as vault
 
 {% if base == "debian" %}
 ########################## Cross Compile Docker Helper Scripts ##########################
