@@ -159,7 +159,7 @@ jobs:
           echo "BAKE_PLATFORMS=$PLATFORMS" | tee -a "${GITHUB_ENV}"
 
       - name: Bake ${{ matrix.base_image }} containers
-        uses: docker/bake-action@1c5f18a523c4c68524cfbc5161494d8bb5b29d20 # v5.0.1
+        uses: docker/bake-action@f6acc70fe0da9b200315017ca49a08c0de03aa0b # v5.1.0
         env:
           BASE_TAGS: "${{ env.BASE_TAGS }}"
           SOURCE_COMMIT: "${{ env.SOURCE_COMMIT }}"
