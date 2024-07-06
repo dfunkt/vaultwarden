@@ -213,7 +213,7 @@ ENV ROCKET_PROFILE="release" \
 {% endif %}
 
 # Create data folder and Install needed libraries
-RUN mkdir /data && \
+RUN mkdir /data && chown -R 65532:65532 /data && \
 {% if base == "debian" %}
     apt-get update && apt-get install -y \
         --no-install-recommends \
@@ -232,6 +232,7 @@ RUN mkdir /data && \
         tzdata
 {% endif %}
 
+USER 65532:65532
 VOLUME /data
 EXPOSE 80
 
