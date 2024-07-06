@@ -139,13 +139,14 @@ ENV ROCKET_PROFILE="release" \
     SSL_CERT_DIR=/etc/ssl/certs
 
 # Create data folder and Install needed libraries
-RUN mkdir /data && \
+RUN mkdir /data && chown -R 65532:65532 /data && \
     apk --no-cache add \
         ca-certificates \
         curl \
         openssl \
         tzdata
 
+USER 65532:65532
 VOLUME /data
 EXPOSE 80
 
