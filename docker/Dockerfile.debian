@@ -177,7 +177,7 @@ ENV ROCKET_PROFILE="release" \
     DEBIAN_FRONTEND=noninteractive
 
 # Create data folder and Install needed libraries
-RUN mkdir /data && \
+RUN mkdir /data && chown -R 65532:65532 /data && \
     apt-get update && apt-get install -y \
         --no-install-recommends \
         ca-certificates \
@@ -188,6 +188,7 @@ RUN mkdir /data && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+USER 65532:65532
 VOLUME /data
 EXPOSE 80
 
