@@ -229,7 +229,6 @@ RUN mkdir /data && chown -R 65532:65532 /data && \
     apt-get update && apt-get install -y \
         --no-install-recommends \
         ca-certificates \
-        curl \
         libmariadb-dev-compat \
         libpq5 \
         openssl && \
@@ -238,7 +237,6 @@ RUN mkdir /data && chown -R 65532:65532 /data && \
 {% elif base == "alpine" %}
     apk --no-cache add \
         ca-certificates \
-        curl \
         openssl \
         tzdata
 {% endif %}
@@ -251,11 +249,7 @@ EXPOSE 80
 # and the binary from the "build" stage to the current stage
 WORKDIR /
 
-COPY docker/healthcheck.sh docker/start.sh /
-
 COPY --from=vault /web-vault ./web-vault
 COPY --from=build /app/target/final/vaultwarden .
 
-HEALTHCHECK --interval=60s --timeout=10s CMD ["/healthcheck.sh"]
-
-CMD ["/start.sh"]
+CMD ["/vaultwarden"]
