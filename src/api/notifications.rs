@@ -1,4 +1,8 @@
-use std::{net::IpAddr, sync::Arc, time::Duration};
+use std::{
+    net::IpAddr,
+    sync::{Arc, LazyLock},
+    time::Duration,
+};
 
 use chrono::{NaiveDateTime, Utc};
 use rmpv::Value;
@@ -16,15 +20,13 @@ use crate::{
     Error, CONFIG,
 };
 
-use once_cell::sync::Lazy;
-
-pub static WS_USERS: Lazy<Arc<WebSocketUsers>> = Lazy::new(|| {
+pub static WS_USERS: LazyLock<Arc<WebSocketUsers>> = LazyLock::new(|| {
     Arc::new(WebSocketUsers {
         map: Arc::new(dashmap::DashMap::new()),
     })
 });
 
-pub static WS_ANONYMOUS_SUBSCRIPTIONS: Lazy<Arc<AnonymousWebSocketSubscriptions>> = Lazy::new(|| {
+pub static WS_ANONYMOUS_SUBSCRIPTIONS: LazyLock<Arc<AnonymousWebSocketSubscriptions>> = LazyLock::new(|| {
     Arc::new(AnonymousWebSocketSubscriptions {
         map: Arc::new(dashmap::DashMap::new()),
     })
@@ -35,7 +37,7 @@ use super::{
     push_send_update, push_user_update,
 };
 
-static NOTIFICATIONS_DISABLED: Lazy<bool> = Lazy::new(|| !CONFIG.enable_websocket() && !CONFIG.push_enabled());
+static NOTIFICATIONS_DISABLED: LazyLock<bool> = LazyLock::new(|| !CONFIG.enable_websocket() && !CONFIG.push_enabled());
 
 pub fn routes() -> Vec<Route> {
     if CONFIG.enable_websocket() {
