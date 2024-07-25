@@ -2,12 +2,11 @@ use std::{
     fmt,
     net::{IpAddr, SocketAddr},
     str::FromStr,
-    sync::{Arc, Mutex},
+    sync::{Arc, LazyLock, Mutex},
     time::Duration,
 };
 
 use hickory_resolver::{system_conf::read_system_conf, TokioAsyncResolver};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use reqwest::{
     dns::{Name, Resolve, Resolving},
@@ -27,7 +26,8 @@ pub fn make_http_request(method: reqwest::Method, url: &str) -> Result<reqwest::
 
     should_block_host(host)?;
 
-    static INSTANCE: Lazy<Client> = Lazy::new(|| get_reqwest_client_builder().build().expect("Failed to build client"));
+    static INSTANCE: LazyLock<Client> =
+        LazyLock::new(|| get_reqwest_client_builder().build().expect("Failed to build client"));
 
     Ok(INSTANCE.request(method, url))
 }
@@ -179,7 +179,7 @@ type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
 impl CustomDnsResolver {
     fn instance() -> Arc<Self> {
-        static INSTANCE: Lazy<Arc<CustomDnsResolver>> = Lazy::new(CustomDnsResolver::new);
+        static INSTANCE: LazyLock<Arc<CustomDnsResolver>> = LazyLock::new(CustomDnsResolver::new);
         Arc::clone(&*INSTANCE)
     }
 
