@@ -4236,7 +4236,6 @@ dependencies = [
  "mimalloc",
  "num-derive",
  "num-traits",
- "once_cell",
  "openssl",
  "pastey",
  "percent-encoding",
