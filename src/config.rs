@@ -2,11 +2,10 @@ use std::env::consts::EXE_SUFFIX;
 use std::process::exit;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    RwLock,
+    LazyLock, RwLock,
 };
 
 use job_scheduler_ng::Schedule;
-use once_cell::sync::Lazy;
 use reqwest::Url;
 
 use crate::{
@@ -15,14 +14,14 @@ use crate::{
     util::{get_env, get_env_bool, get_web_vault_version, parse_experimental_client_feature_flags},
 };
 
-static CONFIG_FILE: Lazy<String> = Lazy::new(|| {
+static CONFIG_FILE: LazyLock<String> = LazyLock::new(|| {
     let data_folder = get_env("DATA_FOLDER").unwrap_or_else(|| String::from("data"));
     get_env("CONFIG_FILE").unwrap_or_else(|| format!("{data_folder}/config.json"))
 });
 
 pub static SKIP_CONFIG_VALIDATION: AtomicBool = AtomicBool::new(false);
 
-pub static CONFIG: Lazy<Config> = Lazy::new(|| {
+pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {
     Config::load().unwrap_or_else(|e| {
         println!("Error loading config:\n  {e:?}\n");
         exit(12)
@@ -1422,7 +1421,7 @@ fn to_json<'reg, 'rc>(
 
 // Configure the web-vault version as an integer so it can be used as a comparison smaller or greater then.
 // The default is based upon the version since this feature is added.
-static WEB_VAULT_VERSION: Lazy<semver::Version> = Lazy::new(|| {
+static WEB_VAULT_VERSION: LazyLock<semver::Version> = LazyLock::new(|| {
     let vault_version = get_web_vault_version();
     // Use a single regex capture to extract version components
     let re = regex::Regex::new(r"(\d{4})\.(\d{1,2})\.(\d{1,2})").unwrap();
@@ -1438,7 +1437,7 @@ static WEB_VAULT_VERSION: Lazy<semver::Version> = Lazy::new(|| {
 
 // Configure the Vaultwarden version as an integer so it can be used as a comparison smaller or greater then.
 // The default is based upon the version since this feature is added.
-static VW_VERSION: Lazy<semver::Version> = Lazy::new(|| {
+static VW_VERSION: LazyLock<semver::Version> = LazyLock::new(|| {
     let vw_version = crate::VERSION.unwrap_or("1.32.5");
     // Use a single regex capture to extract version components
     let re = regex::Regex::new(r"(\d{1})\.(\d{1,2})\.(\d{1,2})").unwrap();
