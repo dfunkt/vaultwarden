@@ -2,11 +2,10 @@ use std::env::consts::EXE_SUFFIX;
 use std::process::exit;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    RwLock,
+    LazyLock, RwLock,
 };
 
 use job_scheduler_ng::Schedule;
-use once_cell::sync::Lazy;
 use reqwest::Url;
 
 use crate::{
@@ -15,14 +14,14 @@ use crate::{
     util::{get_env, get_env_bool, parse_experimental_client_feature_flags},
 };
 
-static CONFIG_FILE: Lazy<String> = Lazy::new(|| {
+static CONFIG_FILE: LazyLock<String> = LazyLock::new(|| {
     let data_folder = get_env("DATA_FOLDER").unwrap_or_else(|| String::from("data"));
     get_env("CONFIG_FILE").unwrap_or_else(|| format!("{data_folder}/config.json"))
 });
 
-pub static SKIP_CONFIG_VALIDATION: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
+pub static SKIP_CONFIG_VALIDATION: LazyLock<AtomicBool> = LazyLock::new(|| AtomicBool::new(false));
 
-pub static CONFIG: Lazy<Config> = Lazy::new(|| {
+pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {
     Config::load().unwrap_or_else(|e| {
         println!("Error loading config:\n  {e:?}\n");
         exit(12)
