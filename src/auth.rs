@@ -2,11 +2,14 @@
 use chrono::{DateTime, TimeDelta, Utc};
 use jsonwebtoken::{errors::ErrorKind, Algorithm, DecodingKey, EncodingKey, Header};
 use num_traits::FromPrimitive;
-use once_cell::sync::{Lazy, OnceCell};
 use openssl::rsa::Rsa;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
-use std::{env, net::IpAddr};
+use std::{
+    env,
+    net::IpAddr,
+    sync::{LazyLock, OnceLock},
+};
 
 use crate::{
     api::ApiResult,
@@ -22,27 +25,30 @@ use crate::{
 const JWT_ALGORITHM: Algorithm = Algorithm::RS256;
 
 // Limit when BitWarden consider the token as expired
-pub static BW_EXPIRATION: Lazy<TimeDelta> = Lazy::new(|| TimeDelta::try_minutes(5).unwrap());
+pub static BW_EXPIRATION: LazyLock<TimeDelta> = LazyLock::new(|| TimeDelta::try_minutes(5).unwrap());
 
-pub static DEFAULT_REFRESH_VALIDITY: Lazy<TimeDelta> = Lazy::new(|| TimeDelta::try_days(30).unwrap());
-pub static MOBILE_REFRESH_VALIDITY: Lazy<TimeDelta> = Lazy::new(|| TimeDelta::try_days(90).unwrap());
-pub static DEFAULT_ACCESS_VALIDITY: Lazy<TimeDelta> = Lazy::new(|| TimeDelta::try_hours(2).unwrap());
-static JWT_HEADER: Lazy<Header> = Lazy::new(|| Header::new(JWT_ALGORITHM));
+pub static DEFAULT_REFRESH_VALIDITY: LazyLock<TimeDelta> = LazyLock::new(|| TimeDelta::try_days(30).unwrap());
+pub static MOBILE_REFRESH_VALIDITY: LazyLock<TimeDelta> = LazyLock::new(|| TimeDelta::try_days(90).unwrap());
+pub static DEFAULT_ACCESS_VALIDITY: LazyLock<TimeDelta> = LazyLock::new(|| TimeDelta::try_hours(2).unwrap());
+static JWT_HEADER: LazyLock<Header> = LazyLock::new(|| Header::new(JWT_ALGORITHM));
 
-pub static JWT_LOGIN_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|login", CONFIG.domain_origin()));
-static JWT_INVITE_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|invite", CONFIG.domain_origin()));
-static JWT_EMERGENCY_ACCESS_INVITE_ISSUER: Lazy<String> =
-    Lazy::new(|| format!("{}|emergencyaccessinvite", CONFIG.domain_origin()));
-static JWT_DELETE_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|delete", CONFIG.domain_origin()));
-static JWT_VERIFYEMAIL_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|verifyemail", CONFIG.domain_origin()));
-static JWT_ADMIN_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|admin", CONFIG.domain_origin()));
-static JWT_SEND_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|send", CONFIG.domain_origin()));
-static JWT_ORG_API_KEY_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|api.organization", CONFIG.domain_origin()));
-static JWT_FILE_DOWNLOAD_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|file_download", CONFIG.domain_origin()));
-static JWT_REGISTER_VERIFY_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|register_verify", CONFIG.domain_origin()));
+pub static JWT_LOGIN_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|login", CONFIG.domain_origin()));
+static JWT_INVITE_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|invite", CONFIG.domain_origin()));
+static JWT_EMERGENCY_ACCESS_INVITE_ISSUER: LazyLock<String> =
+    LazyLock::new(|| format!("{}|emergencyaccessinvite", CONFIG.domain_origin()));
+static JWT_DELETE_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|delete", CONFIG.domain_origin()));
+static JWT_VERIFYEMAIL_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|verifyemail", CONFIG.domain_origin()));
+static JWT_ADMIN_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|admin", CONFIG.domain_origin()));
+static JWT_SEND_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|send", CONFIG.domain_origin()));
+static JWT_ORG_API_KEY_ISSUER: LazyLock<String> =
+    LazyLock::new(|| format!("{}|api.organization", CONFIG.domain_origin()));
+static JWT_FILE_DOWNLOAD_ISSUER: LazyLock<String> =
+    LazyLock::new(|| format!("{}|file_download", CONFIG.domain_origin()));
+static JWT_REGISTER_VERIFY_ISSUER: LazyLock<String> =
+    LazyLock::new(|| format!("{}|register_verify", CONFIG.domain_origin()));
 
-static PRIVATE_RSA_KEY: OnceCell<EncodingKey> = OnceCell::new();
-static PUBLIC_RSA_KEY: OnceCell<DecodingKey> = OnceCell::new();
+static PRIVATE_RSA_KEY: OnceLock<EncodingKey> = OnceLock::new();
+static PUBLIC_RSA_KEY: OnceLock<DecodingKey> = OnceLock::new();
 
 pub async fn initialize_keys() -> Result<(), Error> {
     use std::io::Error;

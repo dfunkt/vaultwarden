@@ -1,8 +1,7 @@
-use once_cell::sync::Lazy;
 use reqwest::Method;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::env;
+use std::{env, sync::LazyLock};
 
 use rocket::serde::json::Json;
 use rocket::{
@@ -82,7 +81,7 @@ pub fn catchers() -> Vec<Catcher> {
     }
 }
 
-static DB_TYPE: Lazy<&str> = Lazy::new(|| match ACTIVE_DB_TYPE.get() {
+static DB_TYPE: LazyLock<&str> = LazyLock::new(|| match ACTIVE_DB_TYPE.get() {
     #[cfg(mysql)]
     Some(DbConnType::Mysql) => "MySQL",
     #[cfg(postgresql)]
@@ -93,9 +92,10 @@ static DB_TYPE: Lazy<&str> = Lazy::new(|| match ACTIVE_DB_TYPE.get() {
 });
 
 #[cfg(sqlite)]
-static CAN_BACKUP: Lazy<bool> = Lazy::new(|| ACTIVE_DB_TYPE.get().map(|t| *t == DbConnType::Sqlite).unwrap_or(false));
+static CAN_BACKUP: LazyLock<bool> =
+    LazyLock::new(|| ACTIVE_DB_TYPE.get().map(|t| *t == DbConnType::Sqlite).unwrap_or(false));
 #[cfg(not(sqlite))]
-static CAN_BACKUP: Lazy<bool> = Lazy::new(|| false);
+static CAN_BACKUP: LazyLock<bool> = LazyLock::new(|| false);
 
 #[get("/")]
 fn admin_disabled() -> &'static str {
