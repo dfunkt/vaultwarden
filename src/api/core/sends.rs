@@ -1,9 +1,7 @@
-use std::path::Path;
-use std::time::Duration;
+use std::{path::Path, sync::LazyLock, time::Duration};
 
 use chrono::{DateTime, TimeDelta, Utc};
 use num_traits::ToPrimitive;
-use once_cell::sync::Lazy;
 use rocket::form::Form;
 use rocket::fs::NamedFile;
 use rocket::fs::TempFile;
@@ -20,7 +18,7 @@ use crate::{
 };
 
 const SEND_INACCESSIBLE_MSG: &str = "Send does not exist or is no longer available";
-static ANON_PUSH_DEVICE: Lazy<Device> = Lazy::new(|| {
+static ANON_PUSH_DEVICE: LazyLock<Device> = LazyLock::new(|| {
     let dt = crate::util::parse_date("1970-01-01T00:00:00.000000Z");
     Device {
         uuid: String::from("00000000-0000-0000-0000-000000000000").into(),
