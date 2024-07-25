@@ -12,8 +12,10 @@ use crate::{
     CONFIG,
 };
 
-use once_cell::sync::Lazy;
-use std::time::{Duration, Instant};
+use std::{
+    sync::LazyLock,
+    time::{Duration, Instant},
+};
 
 #[derive(Deserialize)]
 struct AuthPushToken {
@@ -28,7 +30,7 @@ struct LocalAuthPushToken {
 }
 
 async fn get_auth_push_token() -> ApiResult<String> {
-    static PUSH_TOKEN: Lazy<RwLock<LocalAuthPushToken>> = Lazy::new(|| {
+    static PUSH_TOKEN: LazyLock<RwLock<LocalAuthPushToken>> = LazyLock::new(|| {
         RwLock::new(LocalAuthPushToken {
             access_token: String::new(),
             valid_until: Instant::now(),

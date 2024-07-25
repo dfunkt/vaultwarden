@@ -3,7 +3,6 @@
 use chrono::{TimeDelta, Utc};
 use jsonwebtoken::{errors::ErrorKind, Algorithm, DecodingKey, EncodingKey, Header};
 use num_traits::FromPrimitive;
-use once_cell::sync::{Lazy, OnceCell};
 use openssl::rsa::Rsa;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
@@ -12,75 +11,77 @@ use std::{
     fs::File,
     io::{Read, Write},
     net::IpAddr,
+    sync::LazyLock,
 };
 
 use crate::{error::Error, CONFIG};
 
 const JWT_ALGORITHM: Algorithm = Algorithm::RS256;
 
-pub static DEFAULT_VALIDITY: Lazy<TimeDelta> = Lazy::new(|| TimeDelta::try_hours(2).unwrap());
-static JWT_HEADER: Lazy<Header> = Lazy::new(|| Header::new(JWT_ALGORITHM));
+pub static DEFAULT_VALIDITY: LazyLock<TimeDelta> = LazyLock::new(|| TimeDelta::try_hours(2).unwrap());
+static JWT_HEADER: LazyLock<Header> = LazyLock::new(|| Header::new(JWT_ALGORITHM));
 
-pub static JWT_LOGIN_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|login", CONFIG.domain_origin()));
-static JWT_INVITE_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|invite", CONFIG.domain_origin()));
-static JWT_EMERGENCY_ACCESS_INVITE_ISSUER: Lazy<String> =
-    Lazy::new(|| format!("{}|emergencyaccessinvite", CONFIG.domain_origin()));
-static JWT_DELETE_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|delete", CONFIG.domain_origin()));
-static JWT_VERIFYEMAIL_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|verifyemail", CONFIG.domain_origin()));
-static JWT_ADMIN_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|admin", CONFIG.domain_origin()));
-static JWT_SEND_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|send", CONFIG.domain_origin()));
-static JWT_ORG_API_KEY_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|api.organization", CONFIG.domain_origin()));
-static JWT_FILE_DOWNLOAD_ISSUER: Lazy<String> = Lazy::new(|| format!("{}|file_download", CONFIG.domain_origin()));
+pub static JWT_LOGIN_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|login", CONFIG.domain_origin()));
+static JWT_INVITE_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|invite", CONFIG.domain_origin()));
+static JWT_EMERGENCY_ACCESS_INVITE_ISSUER: LazyLock<String> =
+    LazyLock::new(|| format!("{}|emergencyaccessinvite", CONFIG.domain_origin()));
+static JWT_DELETE_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|delete", CONFIG.domain_origin()));
+static JWT_VERIFYEMAIL_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|verifyemail", CONFIG.domain_origin()));
+static JWT_ADMIN_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|admin", CONFIG.domain_origin()));
+static JWT_SEND_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|send", CONFIG.domain_origin()));
+static JWT_ORG_API_KEY_ISSUER: LazyLock<String> =
+    LazyLock::new(|| format!("{}|api.organization", CONFIG.domain_origin()));
+static JWT_FILE_DOWNLOAD_ISSUER: LazyLock<String> =
+    LazyLock::new(|| format!("{}|file_download", CONFIG.domain_origin()));
 
-static PRIVATE_RSA_KEY: OnceCell<EncodingKey> = OnceCell::new();
-static PUBLIC_RSA_KEY: OnceCell<DecodingKey> = OnceCell::new();
+static PRIVATE_RSA_KEY: LazyLock<EncodingKey> = LazyLock::new(|| {
+    let (_, priv_key_buffer) = read_key(true).or_else(|_| read_key(false)).unwrap();
+    EncodingKey::from_rsa_pem(&priv_key_buffer).unwrap_or_else(|e| panic!("Error decoding private RSA Key.\n{e}"))
+});
+
+static PUBLIC_RSA_KEY: LazyLock<DecodingKey> = LazyLock::new(|| {
+    let (priv_key, _) = read_key(true).or_else(|_| read_key(false)).unwrap();
+    let pub_key_buffer = priv_key.public_key_to_pem().unwrap();
+    DecodingKey::from_rsa_pem(&pub_key_buffer).unwrap_or_else(|e| panic!("Error decoding public RSA Key.\n{e}"))
+});
+
+fn read_key(create_if_missing: bool) -> Result<(Rsa<openssl::pkey::Private>, Vec<u8>), crate::error::Error> {
+    let mut priv_key_buffer = Vec::with_capacity(2048);
+
+    let mut priv_key_file = File::options()
+        .create(create_if_missing)
+        .truncate(false)
+        .read(true)
+        .write(create_if_missing)
+        .open(CONFIG.private_rsa_key())?;
+
+    #[allow(clippy::verbose_file_reads)]
+    let bytes_read = priv_key_file.read_to_end(&mut priv_key_buffer)?;
+
+    let rsa_key = if bytes_read > 0 {
+        Rsa::private_key_from_pem(&priv_key_buffer[..bytes_read])?
+    } else if create_if_missing {
+        // Only create the key if the file doesn't exist or is empty
+        let rsa_key = openssl::rsa::Rsa::generate(2048)?;
+        priv_key_buffer = rsa_key.private_key_to_pem()?;
+        priv_key_file.write_all(&priv_key_buffer)?;
+        info!("Private key '{}' created correctly", CONFIG.private_rsa_key());
+        rsa_key
+    } else {
+        err!("Private key does not exist or invalid format", CONFIG.private_rsa_key());
+    };
+
+    Ok((rsa_key, priv_key_buffer))
+}
 
 pub fn initialize_keys() -> Result<(), crate::error::Error> {
-    fn read_key(create_if_missing: bool) -> Result<(Rsa<openssl::pkey::Private>, Vec<u8>), crate::error::Error> {
-        let mut priv_key_buffer = Vec::with_capacity(2048);
-
-        let mut priv_key_file = File::options()
-            .create(create_if_missing)
-            .truncate(false)
-            .read(true)
-            .write(create_if_missing)
-            .open(CONFIG.private_rsa_key())?;
-
-        #[allow(clippy::verbose_file_reads)]
-        let bytes_read = priv_key_file.read_to_end(&mut priv_key_buffer)?;
-
-        let rsa_key = if bytes_read > 0 {
-            Rsa::private_key_from_pem(&priv_key_buffer[..bytes_read])?
-        } else if create_if_missing {
-            // Only create the key if the file doesn't exist or is empty
-            let rsa_key = openssl::rsa::Rsa::generate(2048)?;
-            priv_key_buffer = rsa_key.private_key_to_pem()?;
-            priv_key_file.write_all(&priv_key_buffer)?;
-            info!("Private key '{}' created correctly", CONFIG.private_rsa_key());
-            rsa_key
-        } else {
-            err!("Private key does not exist or invalid format", CONFIG.private_rsa_key());
-        };
-
-        Ok((rsa_key, priv_key_buffer))
-    }
-
-    let (priv_key, priv_key_buffer) = read_key(true).or_else(|_| read_key(false))?;
-    let pub_key_buffer = priv_key.public_key_to_pem()?;
-
-    let enc = EncodingKey::from_rsa_pem(&priv_key_buffer)?;
-    let dec: DecodingKey = DecodingKey::from_rsa_pem(&pub_key_buffer)?;
-    if PRIVATE_RSA_KEY.set(enc).is_err() {
-        err!("PRIVATE_RSA_KEY must only be initialized once")
-    }
-    if PUBLIC_RSA_KEY.set(dec).is_err() {
-        err!("PUBLIC_RSA_KEY must only be initialized once")
-    }
+    LazyLock::force(&PRIVATE_RSA_KEY);
+    LazyLock::force(&PUBLIC_RSA_KEY);
     Ok(())
 }
 
 pub fn encode_jwt<T: Serialize>(claims: &T) -> String {
-    match jsonwebtoken::encode(&JWT_HEADER, claims, PRIVATE_RSA_KEY.wait()) {
+    match jsonwebtoken::encode(&JWT_HEADER, claims, &PRIVATE_RSA_KEY) {
         Ok(token) => token,
         Err(e) => panic!("Error encoding jwt {e}"),
     }
@@ -94,7 +95,7 @@ fn decode_jwt<T: DeserializeOwned>(token: &str, issuer: String) -> Result<T, Err
     validation.set_issuer(&[issuer]);
 
     let token = token.replace(char::is_whitespace, "");
-    match jsonwebtoken::decode(&token, PUBLIC_RSA_KEY.wait(), &validation) {
+    match jsonwebtoken::decode(&token, &PUBLIC_RSA_KEY, &validation) {
         Ok(d) => Ok(d.claims),
         Err(err) => match *err.kind() {
             ErrorKind::InvalidToken => err!("Token is invalid"),

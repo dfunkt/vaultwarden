@@ -1,12 +1,11 @@
 use std::{
     net::IpAddr,
-    sync::Arc,
+    sync::{Arc, LazyLock},
     time::{Duration, SystemTime},
 };
 
 use bytes::{Bytes, BytesMut};
 use futures::{stream::StreamExt, TryFutureExt};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use reqwest::{
     header::{self, HeaderMap, HeaderValue},
@@ -34,7 +33,7 @@ pub fn routes() -> Vec<Route> {
     }
 }
 
-static CLIENT: Lazy<Client> = Lazy::new(|| {
+static CLIENT: LazyLock<Client> = LazyLock::new(|| {
     // Generate the default headers
     let mut default_headers = HeaderMap::new();
     default_headers.insert(header::USER_AGENT, HeaderValue::from_static("Links (2.22; Linux X86_64; GNU C; text)"));
@@ -60,7 +59,7 @@ static CLIENT: Lazy<Client> = Lazy::new(|| {
 });
 
 // Build Regex only once since this takes a lot of time.
-static ICON_SIZE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?x)(\d+)\D*(\d+)").unwrap());
+static ICON_SIZE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?x)(\d+)\D*(\d+)").unwrap());
 
 #[get("/<domain>/icon.png")]
 fn icon_external(domain: &str) -> Option<Redirect> {

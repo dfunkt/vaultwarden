@@ -1,8 +1,7 @@
-use once_cell::sync::Lazy;
 use reqwest::Method;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::env;
+use std::{env, sync::LazyLock};
 
 use rocket::serde::json::Json;
 use rocket::{
@@ -72,7 +71,7 @@ pub fn catchers() -> Vec<Catcher> {
     }
 }
 
-static DB_TYPE: Lazy<&str> = Lazy::new(|| {
+static DB_TYPE: LazyLock<&str> = LazyLock::new(|| {
     DbConnType::from_url(&CONFIG.database_url())
         .map(|t| match t {
             DbConnType::sqlite => "SQLite",
@@ -82,8 +81,8 @@ static DB_TYPE: Lazy<&str> = Lazy::new(|| {
         .unwrap_or("Unknown")
 });
 
-static CAN_BACKUP: Lazy<bool> =
-    Lazy::new(|| DbConnType::from_url(&CONFIG.database_url()).map(|t| t == DbConnType::sqlite).unwrap_or(false));
+static CAN_BACKUP: LazyLock<bool> =
+    LazyLock::new(|| DbConnType::from_url(&CONFIG.database_url()).map(|t| t == DbConnType::sqlite).unwrap_or(false));
 
 #[get("/")]
 fn admin_disabled() -> &'static str {
