@@ -48,7 +48,6 @@ pub fn initialize_keys() -> Result<(), crate::error::Error> {
             .write(create_if_missing)
             .open(CONFIG.private_rsa_key())?;
 
-        #[allow(clippy::verbose_file_reads)]
         let bytes_read = priv_key_file.read_to_end(&mut priv_key_buffer)?;
 
         let rsa_key = if bytes_read > 0 {
