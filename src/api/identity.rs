@@ -244,8 +244,8 @@ async fn _password_login(
                     error!("Error updating user: {:#?}", e);
                 }
 
-                if let Err(e) = mail::send_verify_email(&user.email, &user.uuid).await {
-                    error!("Error auto-sending email verification email: {:#?}", e);
+                if mail::send_verify_email(&user.email, &user.uuid).await.is_err() {
+                    error!("Error auto-sending email verification email");
                 }
             }
         }
@@ -264,18 +264,19 @@ async fn _password_login(
 
     let twofactor_token = twofactor_auth(&user, &data, &mut device, ip, conn).await?;
 
-    if CONFIG.mail_enabled() && new_device {
-        if let Err(e) = mail::send_new_device_logged_in(&user.email, &ip.ip.to_string(), &now, &device.name).await {
-            error!("Error sending new device email: {:#?}", e);
+    if CONFIG.mail_enabled()
+        && new_device
+        && mail::send_new_device_logged_in(&user.email, &ip.ip.to_string(), &now, &device.name).await.is_err()
+    {
+        error!("Error sending new device email");
 
-            if CONFIG.require_device_email() {
-                err!(
-                    "Could not send login notification email. Please contact your administrator.",
-                    ErrorEvent {
-                        event: EventType::UserFailedLogIn
-                    }
-                )
-            }
+        if CONFIG.require_device_email() {
+            err!(
+                "Could not send login notification email. Please contact your administrator.",
+                ErrorEvent {
+                    event: EventType::UserFailedLogIn
+                }
+            )
         }
     }
 
@@ -421,8 +422,8 @@ async fn _user_api_key_login(
 
     if CONFIG.mail_enabled() && new_device {
         let now = Utc::now().naive_utc();
-        if let Err(e) = mail::send_new_device_logged_in(&user.email, &ip.ip.to_string(), &now, &device.name).await {
-            error!("Error sending new device email: {:#?}", e);
+        if mail::send_new_device_logged_in(&user.email, &ip.ip.to_string(), &now, &device.name).await.is_err() {
+            error!("Error sending new device email");
 
             if CONFIG.require_device_email() {
                 err!(
