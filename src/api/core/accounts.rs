@@ -321,12 +321,12 @@ pub async fn _register(data: Json<RegisterData>, email_verification: bool, conn:
 
     if CONFIG.mail_enabled() {
         if CONFIG.signups_verify() && !email_verified {
-            if let Err(e) = mail::send_welcome_must_verify(&user.email, &user.uuid).await {
-                error!("Error sending welcome email: {e:#?}");
+            if mail::send_welcome_must_verify(&user.email, &user.uuid).await.is_err() {
+                error!("Error sending welcome email");
             }
             user.last_verifying_at = Some(user.created_at);
-        } else if let Err(e) = mail::send_welcome(&user.email).await {
-            error!("Error sending welcome email: {e:#?}");
+        } else if mail::send_welcome(&user.email).await.is_err() {
+            error!("Error sending welcome email");
         }
 
         if email_verified && is_email_2fa_required(data.organization_user_id, &conn).await {
@@ -980,8 +980,8 @@ async fn post_email_token(data: Json<EmailTokenData>, headers: Headers, conn: Db
     let token = crypto::generate_email_token(6);
 
     if CONFIG.mail_enabled() {
-        if let Err(e) = mail::send_change_email(&data.new_email, &token).await {
-            error!("Error sending change-email email: {e:#?}");
+        if mail::send_change_email(&data.new_email, &token).await.is_err() {
+            error!("Error sending change-email email");
         }
     } else {
         debug!("Email change request for user ({}) to email ({}) with token ({token})", user.uuid, data.new_email);
@@ -1065,8 +1065,8 @@ async fn post_verify_email(headers: Headers) -> EmptyResult {
         err!("Cannot verify email address");
     }
 
-    if let Err(e) = mail::send_verify_email(&user.email, &user.uuid).await {
-        error!("Error sending verify_email email: {e:#?}");
+    if mail::send_verify_email(&user.email, &user.uuid).await.is_err() {
+        error!("Error sending verify_email email");
     }
 
     Ok(())
@@ -1115,8 +1115,8 @@ async fn post_delete_recover(data: Json<DeleteRecoverData>, conn: DbConn) -> Emp
 
     if CONFIG.mail_enabled() {
         if let Some(user) = User::find_by_mail(&data.email, &conn).await {
-            if let Err(e) = mail::send_delete_account(&user.email, &user.uuid).await {
-                error!("Error sending delete account email: {e:#?}");
+            if mail::send_delete_account(&user.email, &user.uuid).await.is_err() {
+                error!("Error sending delete account email");
             }
         }
         Ok(())
