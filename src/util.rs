@@ -745,6 +745,9 @@ pub fn convert_json_key_lcase_first(src_json: Value) -> Value {
 
 /// Parses the experimental client feature flags string into a HashMap.
 pub fn parse_experimental_client_feature_flags(experimental_client_feature_flags: &str) -> HashMap<String, bool> {
+    if experimental_client_feature_flags.trim().is_empty() {
+        return HashMap::new();
+    }
     let feature_states = experimental_client_feature_flags.split(',').map(|f| (f.trim().to_owned(), true)).collect();
 
     feature_states
