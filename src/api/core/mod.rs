@@ -188,8 +188,6 @@ fn config() -> Json<Value> {
     let domain = crate::CONFIG.domain();
     let mut feature_states =
         parse_experimental_client_feature_flags(&crate::CONFIG.experimental_client_feature_flags());
-    // Force the new key rotation feature
-    feature_states.insert("key-rotation-improvements".to_string(), true);
     feature_states.insert("flexible-collections-v-1".to_string(), false);
 
     Json(json!({
