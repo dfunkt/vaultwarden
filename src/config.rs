@@ -578,7 +578,7 @@ make_config! {
         authenticator_disable_time_drift: bool, true, def, false;
 
         /// Customize the enabled feature flags on the clients |> This is a comma separated list of feature flags to enable.
-        experimental_client_feature_flags: String, false, def, "fido2-vault-credentials".to_string();
+        experimental_client_feature_flags: String, false, def, String::new();
 
         /// Require new device emails |> When a user logs in an email is required to be sent.
         /// If sending the email fails the login attempt will fail.
@@ -834,11 +834,8 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
 
     // TODO: deal with deprecated flags so they can be removed from this list, cf. #4263
     const KNOWN_FLAGS: &[&str] = &[
-        "autofill-overlay",
-        "autofill-v2",
         "browser-fileless-import",
         "extension-refresh",
-        "fido2-vault-credentials",
         "inline-menu-positioning-improvements",
         "ssh-key-vault-item",
         "ssh-agent",
