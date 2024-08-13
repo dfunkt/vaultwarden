@@ -418,7 +418,7 @@ make_config! {
         /// Duo Auth context cleanup schedule |> Cron schedule of the job that cleans expired Duo contexts from the database. Does nothing if Duo MFA is disabled or set to use the legacy iframe prompt.
         /// Defaults to once every minute. Set blank to disable this job.
         duo_context_purge_schedule:   String, false,  def,    "30 * * * * *".to_string();
-        /// Purge incomplete sso nonce.
+        /// Purge incomplete sso nonce. |> Cron schedule of the job that cleans leftover nonce in db due to incomplete sso login.
         /// Defaults to daily. Set blank to disable this job.
         purge_incomplete_sso_nonce: String, false,  def,   "0 20 0 * * *".to_string();
     },
@@ -633,7 +633,7 @@ make_config! {
     /// OpenID Connect SSO settings
     sso {
         /// Enabled
-        sso_enabled:                    bool,   true,   def,    false;
+        sso_enabled:                    bool,   false,   def,    false;
         /// Only sso login |> Disable Email+Master Password login
         sso_only:                       bool,   true,   def,    false;
         /// Allow email associtation |> Associate existing non-sso user based on email
