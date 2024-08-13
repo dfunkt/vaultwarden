@@ -883,6 +883,7 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
         internal_sso_issuer_url(&cfg.sso_authority)?;
         internal_sso_redirect_url(&cfg.sso_callback_path)?;
         check_master_password_policy(&cfg.sso_master_password_policy)?;
+        internal_sso_authorize_extra_params_vec(&cfg.sso_authorize_extra_params)?;
     }
 
     if cfg._enable_yubico {
@@ -1076,6 +1077,13 @@ fn internal_sso_redirect_url(sso_callback_path: &String) -> Result<openidconnect
     }
 }
 
+fn internal_sso_authorize_extra_params_vec(config: &str) -> Result<Vec<(String, String)>, Error> {
+    match parse_param_list(config.to_owned(), '&', '=') {
+        Err(e) => err!(format!("Invalid SSO_AUTHORIZE_EXTRA_PARAMS: {e}")),
+        Ok(params) => Ok(params),
+    }
+}
+
 fn check_master_password_policy(sso_master_password_policy: &Option<String>) -> Result<(), Error> {
     let policy = sso_master_password_policy.as_ref().map(|mpp| serde_json::from_str::<serde_json::Value>(mpp));
     if let Some(Err(error)) = policy {
@@ -1161,20 +1169,20 @@ fn smtp_convert_deprecated_ssl_options(smtp_ssl: Option<bool>, smtp_explicit_tls
     "starttls".to_string()
 }
 
-/// Allow to parse a multiline list of Key/Values (`key=value`)
-/// Will ignore comment lines (starting with `//`)
-fn parse_param_list(config: String) -> Vec<(String, String)> {
+/// Allow to parse a list of Key/Values (Ex: `key1=value&key2=value2`)
+/// - line break are handled as `separator`
+fn parse_param_list(config: String, separator: char, kv_separator: char) -> Result<Vec<(String, String)>, Error> {
     config
         .lines()
+        .flat_map(|l| l.split(separator))
         .map(|l| l.trim())
-        .filter(|l| !l.is_empty() && !l.starts_with("//"))
-        .filter_map(|l| {
-            let split = l.split('=').collect::<Vec<&str>>();
+        .filter(|l| !l.is_empty())
+        .map(|l| {
+            let split = l.split(kv_separator).collect::<Vec<&str>>();
             match &split[..] {
-                [key, value] => Some(((*key).to_string(), (*value).to_string())),
+                [key, value] => Ok(((*key).to_string(), (*value).to_string())),
                 _ => {
-                    println!("[WARNING] Failed to parse ({l}). Expected key=value");
-                    None
+                    err!(format!("Failed to parse ({l}). Expected key{kv_separator}value"))
                 }
             }
         })
@@ -1383,8 +1391,8 @@ impl Config {
         self.sso_scopes().split_whitespace().map(str::to_string).collect()
     }
 
-    pub fn sso_authorize_extra_params_vec(&self) -> Vec<(String, String)> {
-        parse_param_list(self.sso_authorize_extra_params())
+    pub fn sso_authorize_extra_params_vec(&self) -> Result<Vec<(String, String)>, Error> {
+        internal_sso_authorize_extra_params_vec(&self.sso_authorize_extra_params())
     }
 }
 
@@ -1499,4 +1507,55 @@ fn to_json<'reg, 'rc>(
         .map_err(|e| RenderErrorReason::Other(format!("Can't serialize parameter to JSON: {e}")))?;
     out.write(&json)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_param_list() {
+        let config = "key1=value&key2=value2&".to_string();
+        let parsed = parse_param_list(config, '&', '=');
+
+        assert_eq!(
+            parsed.unwrap(),
+            vec![("key1".to_string(), "value".to_string()), ("key2".to_string(), "value2".to_string())]
+        );
+    }
+
+    #[test]
+    fn test_parse_param_list_lines() {
+        let config = r#"
+        key1=value
+        key2=value2
+        "#
+        .to_string();
+        let parsed = parse_param_list(config, '&', '=');
+
+        assert_eq!(
+            parsed.unwrap(),
+            vec![("key1".to_string(), "value".to_string()), ("key2".to_string(), "value2".to_string())]
+        );
+    }
+
+    #[test]
+    fn test_parse_param_list_mixed() {
+        let config = r#"key1=value&key2=value2&
+        &key3=value3&&
+        &key4=value4
+        "#
+        .to_string();
+        let parsed = parse_param_list(config, '&', '=');
+
+        assert_eq!(
+            parsed.unwrap(),
+            vec![
+                ("key1".to_string(), "value".to_string()),
+                ("key2".to_string(), "value2".to_string()),
+                ("key3".to_string(), "value3".to_string()),
+                ("key4".to_string(), "value4".to_string()),
+            ]
+        );
+    }
 }

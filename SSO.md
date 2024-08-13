@@ -159,12 +159,7 @@ By default without extra [configuration](https://developers.google.com/identity/
 Configure your server with :
 
 - `SSO_AUTHORITY=https://accounts.google.com`
-- ```conf
-  SSO_AUTHORIZE_EXTRA_PARAMS="
-  access_type=offline
-  prompt=consent
-  "
-  ```
+- `SSO_AUTHORIZE_EXTRA_PARAMS="access_type=offline&prompt=consent"`
 - `SSO_PKCE=true`
 - `SSO_CLIENT_ID`
 - `SSO_CLIENT_SECRET`
