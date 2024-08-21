@@ -28,7 +28,10 @@ kcadm.sh create clients -r test -s "clientId=$SSO_CLIENT_ID" -s "secret=$SSO_CLI
 TEST_USER_ID=$(kcadm.sh create users -r "$TEST_REALM" -s "username=$TEST_USER" -s "firstName=$TEST_USER" -s "lastName=$TEST_USER" -s "email=$TEST_USER_MAIL"  -s emailVerified=true -s enabled=true -i)
 kcadm.sh update users/$TEST_USER_ID/reset-password -r "$TEST_REALM" -s type=password -s "value=$TEST_USER_PASSWORD" -n
 
-TEST_USER_2_ID=$(kcadm.sh create users -r "$TEST_REALM" -s "username=$TEST_USER_2" -s "firstName=$TEST_USER_2" -s "lastName=$TEST_USER_2" -s "email=$TEST_USER_2_MAIL"  -s emailVerified=true -s enabled=true -i)
-kcadm.sh update users/$TEST_USER_2_ID/reset-password -r "$TEST_REALM" -s type=password -s "value=$TEST_USER_2_PASSWORD" -n
+TEST_USER2_ID=$(kcadm.sh create users -r "$TEST_REALM" -s "username=$TEST_USER2" -s "firstName=$TEST_USER2" -s "lastName=$TEST_USER2" -s "email=$TEST_USER2_MAIL"  -s emailVerified=true -s enabled=true -i)
+kcadm.sh update users/$TEST_USER2_ID/reset-password -r "$TEST_REALM" -s type=password -s "value=$TEST_USER2_PASSWORD" -n
+
+TEST_USER3_ID=$(kcadm.sh create users -r "$TEST_REALM" -s "username=$TEST_USER3" -s "firstName=$TEST_USER3" -s "lastName=$TEST_USER3" -s "email=$TEST_USER3_MAIL"  -s emailVerified=true -s enabled=true -i)
+kcadm.sh update users/$TEST_USER3_ID/reset-password -r "$TEST_REALM" -s type=password -s "value=$TEST_USER3_PASSWORD" -n
 
 touch $CANARY

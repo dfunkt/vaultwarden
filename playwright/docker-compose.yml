@@ -98,8 +98,8 @@ services:
     container_name: keycloakSetup-${ENV:-dev}
     image: keycloak_setup-${ENV:-dev}
     build:
-      context: compose
-      dockerfile: keycloak_setup.dockerfile
+      context: compose/keycloak
+      dockerfile: Dockerfile
     network_mode: "host"
     depends_on:
       - Keycloak

@@ -27,15 +27,7 @@ test.beforeAll('Setup', async ({ browser }, testInfo: TestInfo) => {
 
 test.afterAll('Teardown', async ({}, testInfo: TestInfo) => {
     utils.stopVaultwarden(testInfo);
-    if( mailserver ){
-        await mailserver.close();
-
-        [user1Mails, user2Mails, user3Mails].map((mails) => {
-            if(mails){
-                mails.return();
-            }
-        });
-    }
+    utils.closeMails(mailserver, [user1Mails, user2Mails, user3Mails]);
 });
 
 test('Create user3', async ({ page }) => {

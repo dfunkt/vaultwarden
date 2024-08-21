@@ -1,5 +1,6 @@
 import { type Browser, type TestInfo } from '@playwright/test';
 import { EventEmitter } from "events";
+import { type Mail, MailServer } from 'maildev';
 import { execSync } from 'node:child_process';
 
 import dotenv from 'dotenv';
@@ -8,30 +9,43 @@ import dotenvExpand from 'dotenv-expand';
 const fs = require("fs");
 const { spawn } = require('node:child_process');
 
-function loadEnv(){
+export function loadEnv(){
     var myEnv = dotenv.config({ path: 'test.env' });
     dotenvExpand.expand(myEnv);
 
     return {
         user1: {
             email: process.env.TEST_USER_MAIL,
-            name: process.env.TEST_USER_MAIL,
+            name: process.env.TEST_USER,
             password: process.env.TEST_USER_PASSWORD,
         },
         user2: {
             email: process.env.TEST_USER2_MAIL,
-            name: process.env.TEST_USER2_MAIL,
+            name: process.env.TEST_USER2,
             password: process.env.TEST_USER2_PASSWORD,
         },
         user3: {
             email: process.env.TEST_USER3_MAIL,
-            name: process.env.TEST_USER3_MAIL,
+            name: process.env.TEST_USER3,
             password: process.env.TEST_USER3_PASSWORD,
         },
     }
 }
 
-async function waitFor(url: String, browser: Browser) {
+export function closeMails(mailServer: MailServer, mailIterators: AsyncIterator<Mail>[]) {
+    if( mailServer ) {
+        mailServer.close();
+    }
+    if( mailIterators ) {
+        for (const mails of mailIterators) {
+            if(mails){
+                mails.return();
+            }
+        }
+    }
+}
+
+export async function waitFor(url: String, browser: Browser) {
     var ready = false;
     var context;
 
@@ -52,12 +66,12 @@ async function waitFor(url: String, browser: Browser) {
     } while(!ready);
 }
 
-function startComposeService(serviceName: String){
+export function startComposeService(serviceName: String){
     console.log(`Starting ${serviceName}`);
     execSync(`docker compose --profile playwright --env-file test.env  up -d ${serviceName}`);
 }
 
-function stopComposeService(serviceName: String){
+export function stopComposeService(serviceName: String){
     console.log(`Stopping ${serviceName}`);
     execSync(`docker compose --profile playwright --env-file test.env  stop ${serviceName}`);
 }
@@ -169,7 +183,7 @@ function dbConfig(testInfo: TestInfo){
 /**
  *  All parameters passed in `env` need to be added to the docker-compose.yml
  **/
-async function startVaultwarden(browser: Browser, testInfo: TestInfo, env = {}, resetDB: Boolean = true) {
+export async function startVaultwarden(browser: Browser, testInfo: TestInfo, env = {}, resetDB: Boolean = true) {
     if( resetDB ){
         switch(testInfo.project.name) {
             case "postgres":
@@ -194,14 +208,12 @@ async function startVaultwarden(browser: Browser, testInfo: TestInfo, env = {}, 
     console.log(`Vaultwarden running on: ${process.env.DOMAIN}`);
 }
 
-async function stopVaultwarden() {
+export async function stopVaultwarden() {
     console.log(`Vaultwarden stopping`);
     execSync(`docker compose --profile playwright --env-file test.env stop Vaultwarden`);
 }
 
-async function restartVaultwarden(page: Page, testInfo: TestInfo, env, resetDB: Boolean = true) {
+export async function restartVaultwarden(page: Page, testInfo: TestInfo, env, resetDB: Boolean = true) {
     stopVaultwarden();
     return startVaultwarden(page.context().browser(), testInfo, env, resetDB);
 }
-
-export { loadEnv, waitFor, startComposeService, stopComposeService, startVaultwarden, stopVaultwarden, restartVaultwarden };
