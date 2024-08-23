@@ -105,18 +105,19 @@ DOCKER_BUILDKIT=1 docker compose --profile playwright --env-file test.env build 
 
 # OpenID Connect test setup
 
-Additionnaly this `docker-compose` template allow to run locally a `VaultWarden` and [`Keycloak`](https://www.keycloak.org/) instance to test OIDC.
+Additionnaly this `docker-compose` template allow to run locally `VaultWarden`, [Keycloak](https://www.keycloak.org/) and [Maildev](https://github.com/timshel/maildev) to test OIDC.
+
+## Setup
+
+This rely on `docker` and the `compose` [plugin](https://docs.docker.com/compose/install/).
+First create a copy of `.env.template` as `.env` (This is done to prevent commiting your custom settings, Ex `SMTP_`).
 
 ## Usage
 
-You'll need `docker` and `docker-compose` ([cf](https://docs.docker.com/engine/install/)).
-
-First create a copy of `.env.template` as `.env` (This is done to prevent commiting your custom settings, Ex `SMTP_`).
-
-Then start the stack (the `profile` is required to run the `VaultWarden`) :
+Then start the stack (the `profile` is required to run `Vaultwarden`) :
 
 ```bash
-> DOCKER_BUILDKIT=1 docker compose --profile vaultWarden up
+> docker compose --profile vaultwarden --env-file .env up
 ....
 keycloakSetup_1  | Logging into http://127.0.0.1:8080 as user admin of realm master
 keycloakSetup_1  | Created new realm with id 'test'
@@ -128,23 +129,25 @@ Wait until `oidc_keycloakSetup_1 exited with code 0` which indicate the correct 
 
 Then you can access :
 
- - `VaultWarden` on http://127.0.0.1:8000 with the default user `test@yopmail.com/test`.
- - `Keycloak` on http://127.0.0.1:8080/admin/master/console/ with the default user `admin/admin`
+- `VaultWarden` on http://0.0.0.0:8000 with the default user `test@yopmail.com/test`.
+- `Keycloak` on http://0.0.0.0:8080/admin/master/console/ with the default user `admin/admin`
+- `Maildev` on http://0.0.0.0:1080
 
 To proceed with an SSO login after you enter the email, on the screen prompting for `Master Password` the SSO button should be visible.
+To use your computer external ip (for example when testing with a phone) you will have to configure `KC_HTTP_HOST` and `DOMAIN`.
 
 ## Running only Keycloak
 
-Since the `VaultWarden` service is defined with a `profile` you can just use the default `docker-compose` command :
+You can run just `Keycloak` with `--profile keycloak`:
 
 ```bash
-> docker compose --profile keycloak up
+> docker compose --profile keycloak --env-file .env up
 ```
 
-When running with a local VaultWarden you'll need to make the SSO button visible using :
+When running with a local VaultWarden and the default `web-vault` you'll need to make the SSO button visible using :
 
 ```bash
-sed -i 's#a\[routerlink="/sso"\],##' /web-vault/app/main.*.css
+sed -i 's#a\[routerlink="/sso"\],##' web-vault/app/main.*.css
 ```
 
 Otherwise you'll need to reveal the SSO login button using the debug console (F12)
@@ -153,11 +156,13 @@ Otherwise you'll need to reveal the SSO login button using the debug console (F1
  document.querySelector('a[routerlink="/sso"]').style.setProperty("display", "inline-block", "important");
  ```
 
-## To force rebuilding the VaultWarden image
+## Rebuilding the Vaultwarden
 
-Use `DOCKER_BUILDKIT=1 docker compose --profile vaultWarden up --build VaultWarden`.
+To force rebuilding the Vaultwarden image you can run
 
-If after building the `Keycloak` configuration is not run, just interrupt and run without `--build`
+```bash
+docker compose --profile vaultwarden --env-file .env build VaultwardenPrebuild Vaultwarden
+```
 
 ## Configuration
 

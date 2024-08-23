@@ -10,7 +10,8 @@ let mailserver, user1Mails, user2Mails, user3Mails;
 
 test.beforeAll('Setup', async ({ browser }, testInfo: TestInfo) => {
     mailserver = new MailDev({
-      port: process.env.MAILDEV_PORT
+        port: process.env.MAILDEV_SMTP_PORT,
+        web: { port: process.env.MAILDEV_HTTP_PORT },
     })
 
     await mailserver.listen();

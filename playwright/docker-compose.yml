@@ -1,6 +1,6 @@
 services:
   VaultwardenPrebuild:
-    profiles: ["playwright", "vaultWarden"]
+    profiles: ["playwright", "vaultwarden"]
     container_name: playwright_oidc_vaultwarden_prebuilt
     image: playwright_oidc_vaultwarden_prebuilt
     build:
@@ -10,7 +10,7 @@ services:
     restart: "no"
 
   Vaultwarden:
-    profiles: ["playwright", "vaultWarden"]
+    profiles: ["playwright", "vaultwarden"]
     container_name: playwright_oidc_vaultwarden-${ENV:-dev}
     image: playwright_oidc_vaultwarden-${ENV:-dev}
     network_mode: "host"
@@ -20,7 +20,7 @@ services:
       args:
         REPO_URL: ${PW_WV_REPO_URL:-}
         COMMIT_HASH: ${PW_WV_COMMIT_HASH:-}
-    env_file: ${ENV}.env
+    env_file: ${DC_ENV_FILE:-.env}
     environment:
       - DATABASE_URL
       - I_REALLY_WANT_VOLATILE_STORAGE
@@ -31,6 +31,8 @@ services:
       - SSO_ENABLED
       - SSO_ONLY
     restart: "no"
+    depends_on:
+      - VaultwardenPrebuild
 
   Playwright:
     profiles: ["playwright"]
@@ -41,8 +43,8 @@ services:
       context: .
       dockerfile: compose/playwright/Dockerfile
     environment:
-      - PW_WV_REPO_URL=${PW_WV_REPO_URL:-}
-      - PW_WV_COMMIT_HASH=${PW_WV_COMMIT_HASH:-}
+      - PW_WV_REPO_URL
+      - PW_WV_COMMIT_HASH
     restart: "no"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -84,24 +86,37 @@ services:
     ports:
       - ${POSTGRES_PORT}:5432
 
-  Keycloak:
-    profiles: ["keycloak", "vaultWarden"]
-    container_name: keycloak-${ENV:-dev}
-    image: quay.io/keycloak/keycloak:25.0.1
+  Maildev:
+    profiles: ["vaultwarden"]
+    container_name: maildev
+    image: timshel/maildev
     network_mode: "host"
     command:
       - start-dev
-    env_file: ${ENV}.env
+    env_file: ${DC_ENV_FILE:-.env}
+
+  Keycloak:
+    profiles: ["keycloak", "vaultwarden"]
+    container_name: keycloak-${ENV:-dev}
+    image: quay.io/keycloak/keycloak:25.0.4
+    network_mode: "host"
+    command:
+      - start-dev
+    env_file: ${DC_ENV_FILE:-.env}
 
   KeycloakSetup:
-    profiles: ["keycloak", "vaultWarden"]
+    profiles: ["keycloak", "vaultwarden"]
     container_name: keycloakSetup-${ENV:-dev}
     image: keycloak_setup-${ENV:-dev}
     build:
       context: compose/keycloak
       dockerfile: Dockerfile
+      args:
+        KEYCLOAK_VERSION: 25.0.4
+        JAVA_URL: https://download.java.net/java/GA/jdk21.0.2/f2283984656d49d69e91c558476027ac/13/GPL/openjdk-21.0.2_linux-x64_bin.tar.gz
+        JAVA_VERSION: 21.0.2
     network_mode: "host"
     depends_on:
       - Keycloak
     restart: "no"
-    env_file: ${ENV}.env
+    env_file: ${DC_ENV_FILE:-.env}
