@@ -3,7 +3,6 @@
 use chrono::{TimeDelta, Utc};
 use jsonwebtoken::{errors::ErrorKind, Algorithm, DecodingKey, EncodingKey, Header};
 use num_traits::FromPrimitive;
-use once_cell::sync::OnceCell;
 use openssl::rsa::Rsa;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
@@ -12,7 +11,7 @@ use std::{
     fs::File,
     io::{Read, Write},
     net::IpAddr,
-    sync::LazyLock,
+    sync::{LazyLock, OnceLock},
 };
 
 use crate::db::models::{
@@ -39,8 +38,8 @@ static JWT_ORG_API_KEY_ISSUER: LazyLock<String> =
 static JWT_FILE_DOWNLOAD_ISSUER: LazyLock<String> =
     LazyLock::new(|| format!("{}|file_download", CONFIG.domain_origin()));
 
-static PRIVATE_RSA_KEY: OnceCell<EncodingKey> = OnceCell::new();
-static PUBLIC_RSA_KEY: OnceCell<DecodingKey> = OnceCell::new();
+static PRIVATE_RSA_KEY: OnceLock<EncodingKey> = OnceLock::new();
+static PUBLIC_RSA_KEY: OnceLock<DecodingKey> = OnceLock::new();
 
 pub fn initialize_keys() -> Result<(), Error> {
     fn read_key(create_if_missing: bool) -> Result<(Rsa<openssl::pkey::Private>, Vec<u8>), Error> {
@@ -87,7 +86,11 @@ pub fn initialize_keys() -> Result<(), Error> {
 }
 
 pub fn encode_jwt<T: Serialize>(claims: &T) -> String {
-    match jsonwebtoken::encode(&JWT_HEADER, claims, PRIVATE_RSA_KEY.wait()) {
+    match jsonwebtoken::encode(
+        &JWT_HEADER,
+        claims,
+        PRIVATE_RSA_KEY.get().expect("PRIVATE_RSA_KEY must be initialized in main"),
+    ) {
         Ok(token) => token,
         Err(e) => panic!("Error encoding jwt {e}"),
     }
@@ -101,7 +104,11 @@ fn decode_jwt<T: DeserializeOwned>(token: &str, issuer: String) -> Result<T, Err
     validation.set_issuer(&[issuer]);
 
     let token = token.replace(char::is_whitespace, "");
-    match jsonwebtoken::decode(&token, PUBLIC_RSA_KEY.wait(), &validation) {
+    match jsonwebtoken::decode(
+        &token,
+        PUBLIC_RSA_KEY.get().expect("PUBLIC_RSA_KEY must be initialized in main"),
+        &validation,
+    ) {
         Ok(d) => Ok(d.claims),
         Err(err) => match *err.kind() {
             ErrorKind::InvalidToken => err!("Token is invalid"),
