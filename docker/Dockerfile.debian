@@ -19,15 +19,15 @@
 # - From https://hub.docker.com/r/vaultwarden/web-vault/tags,
 #   click the tag name to view the digest of the image it currently points to.
 # - From the command line:
-#     $ docker pull ghcr.io/dfunkt/bw_web_builds:v2024.10.4
-#     $ docker image inspect --format "{{.RepoDigests}}" ghcr.io/dfunkt/bw_web_builds:v2024.10.4
-#     [ghcr.io/dfunkt/bw_web_builds@sha256:9ae4c7c863308aac7af9c4c3438368d303ac0458562c2d14b11baea1fe29d450]
+#     $ docker pull ghcr.io/dfunkt/bw_web_builds:v2024.10.5
+#     $ docker image inspect --format "{{.RepoDigests}}" ghcr.io/dfunkt/bw_web_builds:v2024.10.5
+#     [ghcr.io/dfunkt/bw_web_builds@sha256:6d39f90627d2c740bb5617ee01f049d7b8ed0ecbf51ba11cc9f8c08df246c2d3]
 #
 # - Conversely, to get the tag name from the digest:
-#     $ docker image inspect --format "{{.RepoTags}}" ghcr.io/dfunkt/bw_web_builds@sha256:9ae4c7c863308aac7af9c4c3438368d303ac0458562c2d14b11baea1fe29d450
-#     [ghcr.io/dfunkt/bw_web_builds:v2024.10.4]
+#     $ docker image inspect --format "{{.RepoTags}}" ghcr.io/dfunkt/bw_web_builds@sha256:6d39f90627d2c740bb5617ee01f049d7b8ed0ecbf51ba11cc9f8c08df246c2d3
+#     [ghcr.io/dfunkt/bw_web_builds:v2024.10.5]
 #
-FROM --platform=linux/amd64 ghcr.io/dfunkt/bw_web_builds@sha256:9ae4c7c863308aac7af9c4c3438368d303ac0458562c2d14b11baea1fe29d450 AS vault
+FROM --platform=linux/amd64 ghcr.io/dfunkt/bw_web_builds@sha256:6d39f90627d2c740bb5617ee01f049d7b8ed0ecbf51ba11cc9f8c08df246c2d3 AS vault
 
 ########################## Cross Compile Docker Helper Scripts ##########################
 ## We use the linux/amd64 no matter which Build Platform, since these are all bash scripts
