@@ -3,7 +3,7 @@ name = "vaultwarden"
 version = "1.0.0"
 authors = ["Daniel García <dani-garcia@users.noreply.github.com>"]
 edition = "2021"
-rust-version = "1.80.0"
+rust-version = "1.82.0"
 resolver = "2"
 
 repository = "https://github.com/dani-garcia/vaultwarden"
@@ -36,12 +36,12 @@ unstable = []
 
 [target."cfg(unix)".dependencies]
 # Logging
-syslog = "6.1.1"
+syslog = "7.0.0"
 
 [dependencies]
 # Logging
 log = "0.4.22"
-fern = { version = "0.7.0", features = ["syslog-6", "reopen-1"] }
+fern = { version = "0.7.0", features = ["syslog-7", "reopen-1"] }
 tracing = { version = "0.1.40", features = ["log"] } # Needed to have lettre and webauthn-rs trace logging to work
 
 # A `dotenv` implementation for Rust
@@ -50,7 +50,7 @@ dotenvy = { version = "0.15.7", default-features = false }
 # Numerical libraries
 num-traits = "0.2.19"
 num-derive = "0.4.2"
-bigdecimal = "0.4.5"
+bigdecimal = "0.4.6"
 
 # Web framework
 rocket = { version = "0.5.1", features = ["tls", "json"], default-features = false }
@@ -67,7 +67,7 @@ futures = "0.3.31"
 tokio = { version = "1.41.0", features = ["rt-multi-thread", "fs", "io-util", "parking_lot", "time", "signal", "net"] }
 
 # A generic serialization/deserialization framework
-serde = { version = "1.0.213", features = ["derive"] }
+serde = { version = "1.0.214", features = ["derive"] }
 serde_json = "1.0.132"
 
 # A safe, extensible ORM and Query builder
@@ -117,15 +117,15 @@ percent-encoding = "2.3.1" # URL encoding library used for URL's in the emails
 email_address = "0.2.9"
 
 # HTML Template library
-handlebars = { version = "6.1.0", features = ["dir_source"] }
+handlebars = { version = "6.2.0", features = ["dir_source"] }
 
 # HTTP client (Used for favicons, version check, DUO and HIBP API)
-reqwest = { version = "0.12.8", features = ["native-tls-alpn", "stream", "json", "gzip", "brotli", "socks", "cookies"] }
+reqwest = { version = "0.12.9", features = ["native-tls-alpn", "stream", "json", "gzip", "brotli", "socks", "cookies"] }
 hickory-resolver = "0.24.1"
 
 # Favicon extraction libraries
-html5gum = "0.5.7"
-regex = { version = "1.11.0", features = ["std", "perf", "unicode-perl"], default-features = false }
+html5gum = "0.7.0"
+regex = { version = "1.11.1", features = ["std", "perf", "unicode-perl"], default-features = false }
 data-url = "0.3.1"
 bytes = "1.8.0"
 
@@ -152,13 +152,17 @@ semver = "1.0.23"
 # Allow overriding the default memory allocator
 # Mainly used for the musl builds, since the default musl malloc is very slow
 mimalloc = { version = "0.1.43", features = ["secure"], default-features = false, optional = true }
-which = "6.0.3"
+which = "7.0.0"
 
 # Argon2 library with support for the PHC format
 argon2 = "0.5.3"
 
 # Reading a password from the cli for generating the Argon2id ADMIN_TOKEN
 rpassword = "7.3.1"
+
+# Override fern for syslog-7 support until a new version is released
+[patch.crates-io]
+fern = { git = "https://github.com/daboross/fern.git", rev="3e775ccfafe7d24baee39826d38011981b2e55b5" }
 
 # Strip debuginfo from the release builds
 # The symbols are the provide better panic traces
