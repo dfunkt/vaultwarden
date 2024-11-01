@@ -2,7 +2,11 @@ use rocket::serde::json::Json;
 use rocket::Route;
 use serde_json::Value;
 use url::Url;
-use webauthn_rs::{base64_data::Base64UrlSafeData, proto::*, AuthenticationState, RegistrationState, Webauthn};
+use webauthn_rs::{
+    base64_data::Base64UrlSafeData,
+    interface::{AuthenticationState, RegistrationState},
+    Webauthn,
+};
 
 use crate::{
     api::{
@@ -52,7 +56,7 @@ struct WebauthnConfig {
 }
 
 impl WebauthnConfig {
-    fn load() -> Webauthn<Self> {
+    fn load() -> Webauthn {
         let domain = CONFIG.domain();
         let domain_origin = CONFIG.domain_origin();
         Webauthn::new(Self {
