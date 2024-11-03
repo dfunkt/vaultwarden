@@ -20,6 +20,7 @@ build_stage_image:
     platform: "linux/amd64" # The Alpine build images only have linux/amd64 images
     arch_image:
       amd64: "ghcr.io/blackdex/rust-musl:x86_64-musl-stable-{{rust_version}}"
+      amd64v3: "ghcr.io/blackdex/rust-musl:x86_64-musl-stable-{{rust_version}}"
       arm64: "ghcr.io/blackdex/rust-musl:aarch64-musl-stable-{{rust_version}}"
       armv7: "ghcr.io/blackdex/rust-musl:armv7-musleabihf-stable-{{rust_version}}"
       armv6: "ghcr.io/blackdex/rust-musl:arm-musleabi-stable-{{rust_version}}"
