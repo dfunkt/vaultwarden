@@ -43,7 +43,7 @@ jobs:
       # QUAY_REPO needs to be 'quay.io/<user>/<repo>'
       # Check for Quay.io credentials in secrets
       HAVE_QUAY_LOGIN: ${{ vars.QUAY_REPO != '' && secrets.QUAY_USERNAME != '' && secrets.QUAY_TOKEN != '' }}
-      PLATFORMS: "['linux/amd64', 'linux/arm64']"
+      PLATFORMS: "['linux/amd64', 'linux/amd64/v3', 'linux/arm64']"
     strategy:
       matrix:
         base_image: ["debian","alpine"]
