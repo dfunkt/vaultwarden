@@ -22,7 +22,13 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        package: ["vaultwarden-buildache", "vaultwarden-dryrun"]
+        include:
+          - package: "vaultwarden"
+            min_versions: "25"
+          - package: "vaultwarden-buildcache"
+            min_versions: "0"
+          - package: "vaultwarden-dryrun"
+            min_versions: "0"
     steps:
       - name: Delete ${{ matrix.package }} containers
         uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
@@ -30,4 +36,4 @@ jobs:
           package-name: '${{ matrix.package }}'
           package-type: 'container'
           min-versions-to-keep: 0
-          delete-only-untagged-versions: 'false'
+          delete-only-untagged-versions: '${{ matrix.min_versions }}'
