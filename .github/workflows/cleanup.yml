@@ -2,7 +2,7 @@ on:
   workflow_dispatch:
     inputs:
       manual_trigger:
-        description: "Manual trigger buildcache cleanup"
+        description: "Manual trigger cleanup"
         required: false
         default: ""
 
@@ -11,12 +11,19 @@ on:
 
 name: Cleanup
 jobs:
-  releasecache-cleanup:
-    name: Releasecache Cleanup
+  cleanup:
+    name: Cleanup
     runs-on: ubuntu-24.04
     continue-on-error: true
     timeout-minutes: 30
     steps:
+      - name: Delete vaultwarden containers
+        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
+        with:
+          package-name: 'vaultwarden'
+          package-type: 'container'
+          min-versions-to-keep: 25
+
       - name: Delete vaultwarden-buildcache containers
         uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
         with:
