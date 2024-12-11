@@ -8,8 +8,6 @@ use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 use std::{
     env,
-    fs::File,
-    io::{Read, Write},
     net::IpAddr,
     sync::{LazyLock, OnceLock},
 };
@@ -39,31 +37,23 @@ static PUBLIC_RSA_KEY: OnceLock<DecodingKey> = OnceLock::new();
 
 pub fn initialize_keys() -> Result<(), Error> {
     fn read_key(create_if_missing: bool) -> Result<(Rsa<openssl::pkey::Private>, Vec<u8>), Error> {
-        let mut priv_key_buffer = Vec::with_capacity(2048);
+        let key_path = CONFIG.private_rsa_key(); // Store the path to avoid repeated calls
 
-        let mut priv_key_file = File::options()
-            .create(create_if_missing)
-            .truncate(false)
-            .read(true)
-            .write(create_if_missing)
-            .open(CONFIG.private_rsa_key())?;
-
-        #[allow(clippy::verbose_file_reads)]
-        let bytes_read = priv_key_file.read_to_end(&mut priv_key_buffer)?;
-
-        let rsa_key = if bytes_read > 0 {
-            Rsa::private_key_from_pem(&priv_key_buffer[..bytes_read])?
-        } else if create_if_missing {
-            // Only create the key if the file doesn't exist or is empty
-            let rsa_key = Rsa::generate(2048)?;
-            priv_key_buffer = rsa_key.private_key_to_pem()?;
-            priv_key_file.write_all(&priv_key_buffer)?;
-            info!("Private key '{}' created correctly", CONFIG.private_rsa_key());
-            rsa_key
-        } else {
-            err!("Private key does not exist or invalid format", CONFIG.private_rsa_key());
+        let priv_key_buffer = match std::fs::read(&key_path) {
+            Ok(buffer) => buffer,
+            Err(_) if create_if_missing => {
+                let rsa_key = Rsa::generate(2048)?;
+                let priv_key_buffer = rsa_key.private_key_to_pem()?;
+                std::fs::write(&key_path, &priv_key_buffer)?;
+                info!("Created new private key '{}'", key_path);
+                priv_key_buffer
+            }
+            Err(_) => {
+                err!("Private key does not exist or invalid format", key_path);
+            }
         };
 
+        let rsa_key = Rsa::private_key_from_pem(&priv_key_buffer)?;
         Ok((rsa_key, priv_key_buffer))
     }
 
