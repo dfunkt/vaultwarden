@@ -3,7 +3,7 @@
 use chrono::{TimeDelta, Utc};
 use jsonwebtoken::{errors::ErrorKind, Algorithm, DecodingKey, EncodingKey, Header};
 use num_traits::FromPrimitive;
-use openssl::rsa::Rsa;
+use openssl::pkey::{PKey, Private};
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 use std::{
@@ -14,7 +14,7 @@ use std::{
 
 use crate::{error::Error, CONFIG};
 
-const JWT_ALGORITHM: Algorithm = Algorithm::RS256;
+const JWT_ALGORITHM: Algorithm = Algorithm::EdDSA;
 
 pub static DEFAULT_VALIDITY: LazyLock<TimeDelta> = LazyLock::new(|| TimeDelta::try_hours(2).unwrap());
 static JWT_HEADER: LazyLock<Header> = LazyLock::new(|| Header::new(JWT_ALGORITHM));
@@ -32,18 +32,18 @@ static JWT_ORG_API_KEY_ISSUER: LazyLock<String> =
 static JWT_FILE_DOWNLOAD_ISSUER: LazyLock<String> =
     LazyLock::new(|| format!("{}|file_download", CONFIG.domain_origin()));
 
-static PRIVATE_RSA_KEY: OnceLock<EncodingKey> = OnceLock::new();
-static PUBLIC_RSA_KEY: OnceLock<DecodingKey> = OnceLock::new();
+static PRIVATE_ED25519_KEY: OnceLock<EncodingKey> = OnceLock::new();
+static PUBLIC_ED25519_KEY: OnceLock<DecodingKey> = OnceLock::new();
 
 pub fn initialize_keys() -> Result<(), Error> {
-    fn read_key(create_if_missing: bool) -> Result<(Rsa<openssl::pkey::Private>, Vec<u8>), Error> {
-        let key_path = CONFIG.private_rsa_key(); // Store the path to avoid repeated calls
+    fn read_key(create_if_missing: bool) -> Result<(PKey<Private>, Vec<u8>), Error> {
+        let key_path = CONFIG.private_ed25519_key(); // Store the path to avoid repeated calls
 
         let priv_key_buffer = match std::fs::read(&key_path) {
             Ok(buffer) => buffer,
             Err(_) if create_if_missing => {
-                let rsa_key = Rsa::generate(2048)?;
-                let priv_key_buffer = rsa_key.private_key_to_pem()?;
+                let ed25519_key = PKey::generate_ed25519()?;
+                let priv_key_buffer = ed25519_key.private_key_to_pem_pkcs8()?;
                 std::fs::write(&key_path, &priv_key_buffer)?;
                 info!("Created new private key '{}'", key_path);
                 priv_key_buffer
@@ -53,20 +53,20 @@ pub fn initialize_keys() -> Result<(), Error> {
             }
         };
 
-        let rsa_key = Rsa::private_key_from_pem(&priv_key_buffer)?;
-        Ok((rsa_key, priv_key_buffer))
+        let ed25519_key = PKey::private_key_from_pem(&priv_key_buffer)?;
+        Ok((ed25519_key, priv_key_buffer))
     }
 
     let (priv_key, priv_key_buffer) = read_key(true).or_else(|_| read_key(false))?;
     let pub_key_buffer = priv_key.public_key_to_pem()?;
 
-    let enc = EncodingKey::from_rsa_pem(&priv_key_buffer)?;
-    let dec: DecodingKey = DecodingKey::from_rsa_pem(&pub_key_buffer)?;
-    if PRIVATE_RSA_KEY.set(enc).is_err() {
-        err!("PRIVATE_RSA_KEY must only be initialized once")
+    let enc = EncodingKey::from_ed_pem(&priv_key_buffer)?;
+    let dec: DecodingKey = DecodingKey::from_ed_pem(&pub_key_buffer)?;
+    if PRIVATE_ED25519_KEY.set(enc).is_err() {
+        err!("PRIVATE_ED25519_KEY must only be initialized once")
     }
-    if PUBLIC_RSA_KEY.set(dec).is_err() {
-        err!("PUBLIC_RSA_KEY must only be initialized once")
+    if PUBLIC_ED25519_KEY.set(dec).is_err() {
+        err!("PUBLIC_ED25519_KEY must only be initialized once")
     }
     Ok(())
 }
@@ -75,7 +75,7 @@ pub fn encode_jwt<T: Serialize>(claims: &T) -> String {
     match jsonwebtoken::encode(
         &JWT_HEADER,
         claims,
-        PRIVATE_RSA_KEY.get().expect("PRIVATE_RSA_KEY must be initialized in main"),
+        PRIVATE_ED25519_KEY.get().expect("PRIVATE_ED25519_KEY must be initialized in main"),
     ) {
         Ok(token) => token,
         Err(e) => panic!("Error encoding jwt {e}"),
@@ -92,7 +92,7 @@ fn decode_jwt<T: DeserializeOwned>(token: &str, issuer: String) -> Result<T, Err
     let token = token.replace(char::is_whitespace, "");
     match jsonwebtoken::decode(
         &token,
-        PUBLIC_RSA_KEY.get().expect("PUBLIC_RSA_KEY must be initialized in main"),
+        PUBLIC_ED25519_KEY.get().expect("PUBLIC_ED25519_KEY must be initialized in main"),
         &validation,
     ) {
         Ok(d) => Ok(d.claims),
