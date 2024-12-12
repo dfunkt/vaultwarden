@@ -164,14 +164,15 @@ jobs:
           fi
           #
 
-      - name: Configure bake platforms
+      - name: Configure bake
         shell: bash
         run: |
           PLATFORMS=$(echo "${{ env.PLATFORMS }}" | tr -d "[' ]")
           echo "BAKE_PLATFORMS=$PLATFORMS" | tee -a "${GITHUB_ENV}"
+          mkdir /tmp/vaultwarden
 
       - name: Bake ${{ matrix.base_image }} containers
-        uses: docker/bake-action@2e3d19baedb14545e5d41222653874f25d5b4dfb # v5.10.0
+        uses: docker/bake-action@3fc70e1131fee40a422dd8dd0ff22014ae20a1f3 # v5.11.0
         env:
           BASE_TAGS: "${{ env.BASE_TAGS }}"
           SOURCE_COMMIT: "${{ env.SOURCE_COMMIT }}"
