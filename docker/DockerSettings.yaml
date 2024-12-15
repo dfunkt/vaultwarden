@@ -5,6 +5,9 @@ vault_image_digest: "sha256:72d6cbf4193329c7d84fe8b48c3c2a381c77e1ca4fbb206a0759
 # We use the linux/amd64 platform shell scripts since there is no difference between the different platform scripts
 # https://github.com/tonistiigi/xx | https://hub.docker.com/r/tonistiigi/xx/tags
 xx_image_digest: "sha256:1978e7a58a1777cb0ef0dde76bad60b7914b21da57cfa88047875e4f364297aa"
+# Gosu v1.17
+# https://github.com/tianon/gosu | https://hub.docker.com/r/tianon/gosu/tags
+gosu_image_digest: "sha256:68fc2ba73659a940fdadd7c66796ba4a6ff0d0ec7e96a568db191d0f99256a77"
 rust_version: 1.83.0 # Rust version to be used
 debian_version: bookworm # Debian release name to be used
 alpine_version: "3.21" # Alpine version to be used

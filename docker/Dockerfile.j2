@@ -250,6 +250,7 @@ WORKDIR /
 
 COPY docker/start.sh /
 
+COPY --from=tianon/gosu@{{ gosu_image_digest }} /gosu /usr/local/bin/
 COPY --from=vault /web-vault ./web-vault
 COPY --from=build /app/target/final/vaultwarden .
 
