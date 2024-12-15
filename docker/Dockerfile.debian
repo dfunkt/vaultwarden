@@ -198,6 +198,7 @@ WORKDIR /
 
 COPY docker/healthcheck.sh docker/start.sh /
 
+COPY --from=tianon/gosu@sha256:68fc2ba73659a940fdadd7c66796ba4a6ff0d0ec7e96a568db191d0f99256a77 /gosu /usr/local/bin/
 COPY --from=vault /web-vault ./web-vault
 COPY --from=build /app/target/final/vaultwarden .
 
