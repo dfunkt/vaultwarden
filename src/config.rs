@@ -516,7 +516,7 @@ make_config! {
         /// Templates folder
         templates_folder:       String, false,  auto,   |c| format!("{}/templates", c.data_folder);
         /// Session JWT key
-        rsa_key_filename:       String, false,  auto,   |c| format!("{}/rsa_key", c.data_folder);
+        ed25519_key_filename:       String, false,  auto,   |c| format!("{}/ed25519_key", c.data_folder);
         /// Web vault folder
         web_vault_folder:       String, false,  def,    "web-vault/".to_string();
     },
@@ -1464,7 +1464,7 @@ pub enum PathType {
     IconCache,
     Attachments,
     Sends,
-    RsaKey,
+    Ed25519Key,
 }
 
 impl Config {
@@ -1615,8 +1615,8 @@ impl Config {
         Ok(())
     }
 
-    pub fn private_rsa_key(&self) -> String {
-        format!("{}.pem", self.rsa_key_filename())
+    pub fn private_ed25519_key(&self) -> String {
+        format!("{}.pem", self.ed25519_key_filename())
     }
     pub fn mail_enabled(&self) -> bool {
         let inner = &self.inner.read().unwrap().config;
@@ -1657,11 +1657,11 @@ impl Config {
             PathType::IconCache => self.icon_cache_folder(),
             PathType::Attachments => self.attachments_folder(),
             PathType::Sends => self.sends_folder(),
-            PathType::RsaKey => std::path::Path::new(&self.rsa_key_filename())
+            PathType::Ed25519Key => std::path::Path::new(&self.ed25519_key_filename())
                 .parent()
-                .ok_or_else(|| std::io::Error::other("Failed to get directory of RSA key file"))?
+                .ok_or_else(|| std::io::Error::other("Failed to get directory of Ed25519 key file"))?
                 .to_str()
-                .ok_or_else(|| std::io::Error::other("Failed to convert RSA key file directory to UTF-8 string"))?
+                .ok_or_else(|| std::io::Error::other("Failed to convert Ed25519 key file directory to UTF-8 string"))?
                 .to_string(),
         };
 
