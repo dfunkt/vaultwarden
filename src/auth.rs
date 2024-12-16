@@ -7,7 +7,7 @@ use std::{
 use chrono::{DateTime, TimeDelta, Utc};
 use jsonwebtoken::{errors::ErrorKind, Algorithm, DecodingKey, EncodingKey, Header};
 use num_traits::FromPrimitive;
-use openssl::rsa::Rsa;
+use openssl::pkey::PKey;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 
@@ -22,7 +22,7 @@ use crate::{
     sso, CONFIG,
 };
 
-const JWT_ALGORITHM: Algorithm = Algorithm::RS256;
+const JWT_ALGORITHM: Algorithm = Algorithm::EdDSA;
 
 // Limit when BitWarden consider the token as expired
 pub static BW_EXPIRATION: LazyLock<TimeDelta> = LazyLock::new(|| TimeDelta::try_minutes(5).unwrap());
@@ -47,51 +47,51 @@ static JWT_FILE_DOWNLOAD_ISSUER: LazyLock<String> =
 static JWT_REGISTER_VERIFY_ISSUER: LazyLock<String> =
     LazyLock::new(|| format!("{}|register_verify", CONFIG.domain_origin()));
 
-static PRIVATE_RSA_KEY: OnceLock<EncodingKey> = OnceLock::new();
-static PUBLIC_RSA_KEY: OnceLock<DecodingKey> = OnceLock::new();
+static PRIVATE_ED25519_KEY: OnceLock<EncodingKey> = OnceLock::new();
+static PUBLIC_ED25519_KEY: OnceLock<DecodingKey> = OnceLock::new();
 
 pub async fn initialize_keys() -> Result<(), Error> {
     use std::io::Error;
 
-    let rsa_key_filename = std::path::PathBuf::from(CONFIG.private_rsa_key())
+    let ed25519_key_filename = std::path::PathBuf::from(CONFIG.private_ed25519_key())
         .file_name()
-        .ok_or_else(|| Error::other("Private RSA key path missing filename"))?
+        .ok_or_else(|| Error::other("Private Ed25519 key path missing filename"))?
         .to_str()
-        .ok_or_else(|| Error::other("Private RSA key path filename is not valid UTF-8"))?
+        .ok_or_else(|| Error::other("Private Ed25519 key path filename is not valid UTF-8"))?
         .to_string();
 
-    let operator = CONFIG.opendal_operator_for_path_type(&PathType::RsaKey).map_err(Error::other)?;
+    let operator = CONFIG.opendal_operator_for_path_type(&PathType::Ed25519Key).map_err(Error::other)?;
 
-    let priv_key_buffer = match operator.read(&rsa_key_filename).await {
+    let priv_key_buffer = match operator.read(&ed25519_key_filename).await {
         Ok(buffer) => Some(buffer),
         Err(e) if e.kind() == opendal::ErrorKind::NotFound => None,
         Err(e) => return Err(e.into()),
     };
 
     let (priv_key, priv_key_buffer) = if let Some(priv_key_buffer) = priv_key_buffer {
-        (Rsa::private_key_from_pem(priv_key_buffer.to_vec().as_slice())?, priv_key_buffer.to_vec())
+        (PKey::private_key_from_pem(priv_key_buffer.to_vec().as_slice())?, priv_key_buffer.to_vec())
     } else {
-        let rsa_key = Rsa::generate(2048)?;
-        let priv_key_buffer = rsa_key.private_key_to_pem()?;
-        operator.write(&rsa_key_filename, priv_key_buffer.clone()).await?;
-        info!("Private key '{}' created correctly", CONFIG.private_rsa_key());
-        (rsa_key, priv_key_buffer)
+        let ed25519_key = PKey::generate_ed25519()?;
+        let priv_key_buffer = ed25519_key.private_key_to_pem_pkcs8()?;
+        operator.write(&ed25519_key_filename, priv_key_buffer.clone()).await?;
+        info!("Private key '{}' created correctly", CONFIG.private_ed25519_key());
+        (ed25519_key, priv_key_buffer)
     };
     let pub_key_buffer = priv_key.public_key_to_pem()?;
 
-    let enc = EncodingKey::from_rsa_pem(&priv_key_buffer)?;
-    let dec: DecodingKey = DecodingKey::from_rsa_pem(&pub_key_buffer)?;
-    if PRIVATE_RSA_KEY.set(enc).is_err() {
-        err!("PRIVATE_RSA_KEY must only be initialized once")
+    let enc = EncodingKey::from_ed_pem(&priv_key_buffer)?;
+    let dec: DecodingKey = DecodingKey::from_ed_pem(&pub_key_buffer)?;
+    if PRIVATE_ED25519_KEY.set(enc).is_err() {
+        err!("PRIVATE_ED25519_KEY must only be initialized once")
     }
-    if PUBLIC_RSA_KEY.set(dec).is_err() {
-        err!("PUBLIC_RSA_KEY must only be initialized once")
+    if PUBLIC_ED25519_KEY.set(dec).is_err() {
+        err!("PUBLIC_ED25519_KEY must only be initialized once")
     }
     Ok(())
 }
 
 pub fn encode_jwt<T: Serialize>(claims: &T) -> String {
-    match jsonwebtoken::encode(&JWT_HEADER, claims, PRIVATE_RSA_KEY.wait()) {
+    match jsonwebtoken::encode(&JWT_HEADER, claims, PRIVATE_ED25519_KEY.wait()) {
         Ok(token) => token,
         Err(e) => panic!("Error encoding jwt {e}"),
     }
@@ -105,7 +105,7 @@ pub fn decode_jwt<T: DeserializeOwned>(token: &str, issuer: String) -> Result<T,
     validation.set_issuer(&[issuer]);
 
     let token = token.replace(char::is_whitespace, "");
-    match jsonwebtoken::decode(&token, PUBLIC_RSA_KEY.wait(), &validation) {
+    match jsonwebtoken::decode(&token, PUBLIC_ED25519_KEY.wait(), &validation) {
         Ok(d) => Ok(d.claims),
         Err(err) => match *err.kind() {
             ErrorKind::InvalidToken => err!("Token is invalid"),
