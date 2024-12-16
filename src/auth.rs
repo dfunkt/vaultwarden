@@ -3,7 +3,7 @@
 use chrono::{TimeDelta, Utc};
 use jsonwebtoken::{errors::ErrorKind, Algorithm, DecodingKey, EncodingKey, Header};
 use num_traits::FromPrimitive;
-use openssl::rsa::Rsa;
+use openssl::pkey::{PKey, Private};
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 use std::{
@@ -20,7 +20,7 @@ use crate::db::models::{
 };
 use crate::{error::Error, CONFIG};
 
-const JWT_ALGORITHM: Algorithm = Algorithm::RS256;
+const JWT_ALGORITHM: Algorithm = Algorithm::EdDSA;
 
 pub static DEFAULT_VALIDITY: LazyLock<TimeDelta> = LazyLock::new(|| TimeDelta::try_hours(2).unwrap());
 static JWT_HEADER: LazyLock<Header> = LazyLock::new(|| Header::new(JWT_ALGORITHM));
@@ -40,55 +40,55 @@ static JWT_FILE_DOWNLOAD_ISSUER: LazyLock<String> =
 static JWT_REGISTER_VERIFY_ISSUER: LazyLock<String> =
     LazyLock::new(|| format!("{}|register_verify", CONFIG.domain_origin()));
 
-static PRIVATE_RSA_KEY: OnceLock<EncodingKey> = OnceLock::new();
-static PUBLIC_RSA_KEY: OnceLock<DecodingKey> = OnceLock::new();
+static PRIVATE_ED25519_KEY: OnceLock<EncodingKey> = OnceLock::new();
+static PUBLIC_ED25519_KEY: OnceLock<DecodingKey> = OnceLock::new();
 
 pub fn initialize_keys() -> Result<(), Error> {
-    fn read_key(create_if_missing: bool) -> Result<(Rsa<openssl::pkey::Private>, Vec<u8>), Error> {
-        let mut priv_key_buffer = Vec::with_capacity(2048);
+    fn read_key(create_if_missing: bool) -> Result<(PKey<Private>, Vec<u8>), Error> {
+        let mut priv_key_buffer = Vec::with_capacity(128);
 
         let mut priv_key_file = File::options()
             .create(create_if_missing)
             .truncate(false)
             .read(true)
             .write(create_if_missing)
-            .open(CONFIG.private_rsa_key())?;
+            .open(CONFIG.private_ed25519_key())?;
 
         #[allow(clippy::verbose_file_reads)]
         let bytes_read = priv_key_file.read_to_end(&mut priv_key_buffer)?;
 
-        let rsa_key = if bytes_read > 0 {
-            Rsa::private_key_from_pem(&priv_key_buffer[..bytes_read])?
+        let ed25519_key = if bytes_read > 0 {
+            PKey::private_key_from_pem(&priv_key_buffer[..bytes_read])?
         } else if create_if_missing {
             // Only create the key if the file doesn't exist or is empty
-            let rsa_key = Rsa::generate(2048)?;
-            priv_key_buffer = rsa_key.private_key_to_pem()?;
+            let ed25519_key = PKey::generate_ed25519()?;
+            priv_key_buffer = ed25519_key.private_key_to_pem_pkcs8()?;
             priv_key_file.write_all(&priv_key_buffer)?;
-            info!("Private key '{}' created correctly", CONFIG.private_rsa_key());
-            rsa_key
+            info!("Private key '{}' created correctly", CONFIG.private_ed25519_key());
+            ed25519_key
         } else {
-            err!("Private key does not exist or invalid format", CONFIG.private_rsa_key());
+            err!("Private key does not exist or invalid format", CONFIG.private_ed25519_key());
         };
 
-        Ok((rsa_key, priv_key_buffer))
+        Ok((ed25519_key, priv_key_buffer))
     }
 
     let (priv_key, priv_key_buffer) = read_key(true).or_else(|_| read_key(false))?;
     let pub_key_buffer = priv_key.public_key_to_pem()?;
 
-    let enc = EncodingKey::from_rsa_pem(&priv_key_buffer)?;
-    let dec: DecodingKey = DecodingKey::from_rsa_pem(&pub_key_buffer)?;
-    if PRIVATE_RSA_KEY.set(enc).is_err() {
-        err!("PRIVATE_RSA_KEY must only be initialized once")
+    let enc = EncodingKey::from_ed_pem(&priv_key_buffer)?;
+    let dec: DecodingKey = DecodingKey::from_ed_pem(&pub_key_buffer)?;
+    if PRIVATE_ED25519_KEY.set(enc).is_err() {
+        err!("PRIVATE_ED25519_KEY must only be initialized once")
     }
-    if PUBLIC_RSA_KEY.set(dec).is_err() {
-        err!("PUBLIC_RSA_KEY must only be initialized once")
+    if PUBLIC_ED25519_KEY.set(dec).is_err() {
+        err!("PUBLIC_ED25519_KEY must only be initialized once")
     }
     Ok(())
 }
 
 pub fn encode_jwt<T: Serialize>(claims: &T) -> String {
-    match jsonwebtoken::encode(&JWT_HEADER, claims, PRIVATE_RSA_KEY.wait()) {
+    match jsonwebtoken::encode(&JWT_HEADER, claims, PRIVATE_ED25519_KEY.wait()) {
         Ok(token) => token,
         Err(e) => panic!("Error encoding jwt {e}"),
     }
@@ -102,7 +102,7 @@ fn decode_jwt<T: DeserializeOwned>(token: &str, issuer: String) -> Result<T, Err
     validation.set_issuer(&[issuer]);
 
     let token = token.replace(char::is_whitespace, "");
-    match jsonwebtoken::decode(&token, PUBLIC_RSA_KEY.wait(), &validation) {
+    match jsonwebtoken::decode(&token, PUBLIC_ED25519_KEY.wait(), &validation) {
         Ok(d) => Ok(d.claims),
         Err(err) => match *err.kind() {
             ErrorKind::InvalidToken => err!("Token is invalid"),
