@@ -377,7 +377,7 @@ make_config! {
         /// Templates folder
         templates_folder:       String, false,  auto,   |c| format!("{}/{}", c.data_folder, "templates");
         /// Session JWT key
-        rsa_key_filename:       String, false,  auto,   |c| format!("{}/{}", c.data_folder, "rsa_key");
+        ed25519_key_filename:       String, false,  auto,   |c| format!("{}/{}", c.data_folder, "ed25519_key");
         /// Web vault folder
         web_vault_folder:       String, false,  def,    "web-vault/".to_string();
     },
@@ -1250,8 +1250,8 @@ impl Config {
         Ok(())
     }
 
-    pub fn private_rsa_key(&self) -> String {
-        format!("{}.pem", self.rsa_key_filename())
+    pub fn private_ed25519_key(&self) -> String {
+        format!("{}.pem", self.ed25519_key_filename())
     }
     pub fn mail_enabled(&self) -> bool {
         let inner = &self.inner.read().unwrap().config;
