@@ -1,7 +1,7 @@
 // JWT Handling
 //
 use chrono::{TimeDelta, Utc};
-use jsonwebtoken::{errors::ErrorKind, Algorithm, DecodingKey, EncodingKey, Header};
+use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, errors::ErrorKind};
 use num_traits::FromPrimitive;
 use openssl::pkey::{PKey, Private};
 use serde::de::DeserializeOwned;
@@ -18,7 +18,7 @@ use crate::db::models::{
     AttachmentId, CipherId, CollectionId, DeviceId, EmergencyAccessId, MembershipId, OrgApiKeyId, OrganizationId,
     SendFileId, SendId, UserId,
 };
-use crate::{error::Error, CONFIG};
+use crate::{CONFIG, error::Error};
 
 const JWT_ALGORITHM: Algorithm = Algorithm::EdDSA;
 
@@ -413,8 +413,8 @@ use rocket::{
 };
 
 use crate::db::{
-    models::{Collection, Device, Membership, MembershipStatus, MembershipType, User, UserStampException},
     DbConn,
+    models::{Collection, Device, Membership, MembershipStatus, MembershipType, User, UserStampException},
 };
 
 pub struct Host {

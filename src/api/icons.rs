@@ -6,25 +6,25 @@ use std::{
 };
 
 use bytes::{Bytes, BytesMut};
-use futures::{stream::StreamExt, TryFutureExt};
+use futures::{TryFutureExt, stream::StreamExt};
 use regex::Regex;
 use reqwest::{
-    header::{self, HeaderMap, HeaderValue},
     Client, Response,
+    header::{self, HeaderMap, HeaderValue},
 };
-use rocket::{http::ContentType, response::Redirect, Route};
+use rocket::{Route, http::ContentType, response::Redirect};
 use tokio::{
-    fs::{create_dir_all, remove_file, symlink_metadata, File},
+    fs::{File, create_dir_all, remove_file, symlink_metadata},
     io::{AsyncReadExt, AsyncWriteExt},
 };
 
 use html5gum::{Emitter, HtmlString, Readable, StringReader, Tokenizer};
 
 use crate::{
-    error::Error,
-    http_client::{get_reqwest_client_builder, should_block_address, CustomHttpClientError},
-    util::Cached,
     CONFIG,
+    error::Error,
+    http_client::{CustomHttpClientError, get_reqwest_client_builder, should_block_address},
+    util::Cached,
 };
 
 pub fn routes() -> Vec<Route> {

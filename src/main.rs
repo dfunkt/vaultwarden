@@ -64,7 +64,7 @@ use crate::api::{WS_ANONYMOUS_SUBSCRIPTIONS, WS_USERS};
 pub use config::CONFIG;
 pub use error::{Error, MapResult};
 use rocket::data::{Limits, ToByteUnit};
-use std::sync::{atomic::Ordering, Arc};
+use std::sync::{Arc, atomic::Ordering};
 pub use util::is_running_in_container;
 
 #[rocket::main]
@@ -136,7 +136,7 @@ async fn parse_args() {
     if let Some(command) = pargs.subcommand().unwrap_or_default() {
         if command == "hash" {
             use argon2::{
-                password_hash::SaltString, Algorithm::Argon2id, Argon2, ParamsBuilder, PasswordHasher, Version::V0x13,
+                Algorithm::Argon2id, Argon2, ParamsBuilder, PasswordHasher, Version::V0x13, password_hash::SaltString,
             };
 
             let mut argon2_params = ParamsBuilder::new();
@@ -204,7 +204,7 @@ async fn parse_args() {
 }
 
 async fn backup_sqlite() -> Result<String, Error> {
-    use crate::db::{backup_database, DbConnType};
+    use crate::db::{DbConnType, backup_database};
     if DbConnType::from_url(&CONFIG.database_url()).map(|t| t == DbConnType::sqlite).unwrap_or(false) {
         // Establish a connection to the sqlite database
         let mut conn = db::DbPool::from_config()

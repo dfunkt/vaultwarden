@@ -1,22 +1,22 @@
-use rocket::serde::json::Json;
 use rocket::Route;
+use rocket::serde::json::Json;
 use serde_json::Value;
 use url::Url;
-use webauthn_rs::{base64_data::Base64UrlSafeData, proto::*, AuthenticationState, RegistrationState, Webauthn};
+use webauthn_rs::{AuthenticationState, RegistrationState, Webauthn, base64_data::Base64UrlSafeData, proto::*};
 
 use crate::{
+    CONFIG,
     api::{
-        core::{log_user_event, two_factor::_generate_recover_code},
         EmptyResult, JsonResult, PasswordOrOtpData,
+        core::{log_user_event, two_factor::_generate_recover_code},
     },
     auth::Headers,
     db::{
-        models::{EventType, TwoFactor, TwoFactorType, UserId},
         DbConn,
+        models::{EventType, TwoFactor, TwoFactorType, UserId},
     },
     error::Error,
     util::NumberOrString,
-    CONFIG,
 };
 
 pub fn routes() -> Vec<Route> {

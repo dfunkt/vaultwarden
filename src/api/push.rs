@@ -1,16 +1,16 @@
 use reqwest::{
-    header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
     Method,
+    header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
 };
 use serde_json::Value;
 use tokio::sync::RwLock;
 
 use crate::{
+    CONFIG,
     api::{ApiResult, EmptyResult, UpdateType},
     db::models::{AuthRequestId, Cipher, Device, DeviceId, Folder, Send, User, UserId},
     http_client::make_http_request,
     util::format_date,
-    CONFIG,
 };
 
 use std::{

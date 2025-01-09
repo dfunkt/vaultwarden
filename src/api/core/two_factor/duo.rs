@@ -1,22 +1,22 @@
 use chrono::Utc;
 use data_encoding::BASE64;
-use rocket::serde::json::Json;
 use rocket::Route;
+use rocket::serde::json::Json;
 
 use crate::{
+    CONFIG,
     api::{
-        core::log_user_event, core::two_factor::_generate_recover_code, ApiResult, EmptyResult, JsonResult,
-        PasswordOrOtpData,
+        ApiResult, EmptyResult, JsonResult, PasswordOrOtpData, core::log_user_event,
+        core::two_factor::_generate_recover_code,
     },
     auth::Headers,
     crypto,
     db::{
-        models::{EventType, TwoFactor, TwoFactorType, User, UserId},
         DbConn,
+        models::{EventType, TwoFactor, TwoFactorType, User, UserId},
     },
     error::MapResult,
     http_client::make_http_request,
-    CONFIG,
 };
 
 pub fn routes() -> Vec<Route> {
@@ -198,7 +198,7 @@ async fn activate_duo_put(data: Json<EnableDuoData>, headers: Headers, conn: DbC
 }
 
 async fn duo_api_request(method: &str, path: &str, params: &str, data: &DuoData) -> EmptyResult {
-    use reqwest::{header, Method};
+    use reqwest::{Method, header};
     use std::str::FromStr;
 
     // https://duo.com/docs/authapi#api-details

@@ -9,7 +9,7 @@ mod sends;
 pub mod two_factor;
 
 pub use accounts::purge_auth_requests;
-pub use ciphers::{purge_trashed_ciphers, CipherData, CipherSyncData, CipherSyncType};
+pub use ciphers::{CipherData, CipherSyncData, CipherSyncType, purge_trashed_ciphers};
 pub use emergency_access::{emergency_notification_reminder_job, emergency_request_timeout_job};
 pub use events::{event_cleanup_job, log_event, log_user_event};
 use reqwest::Method;
@@ -47,7 +47,7 @@ pub fn events_routes() -> Vec<Route> {
 //
 // Move this somewhere else
 //
-use rocket::{serde::json::Json, serde::json::Value, Catcher, Route};
+use rocket::{Catcher, Route, serde::json::Json, serde::json::Value};
 
 use crate::{
     api::{JsonResult, Notify, UpdateType},

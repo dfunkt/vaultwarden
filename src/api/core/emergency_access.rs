@@ -1,17 +1,17 @@
 use chrono::{TimeDelta, Utc};
-use rocket::{serde::json::Json, Route};
+use rocket::{Route, serde::json::Json};
 use serde_json::Value;
 
 use crate::{
+    CONFIG,
     api::{
-        core::{CipherSyncData, CipherSyncType},
         EmptyResult, JsonResult,
+        core::{CipherSyncData, CipherSyncType},
     },
-    auth::{decode_emergency_access_invite, Headers},
-    db::{models::*, DbConn, DbPool},
+    auth::{Headers, decode_emergency_access_invite},
+    db::{DbConn, DbPool, models::*},
     mail,
     util::NumberOrString,
-    CONFIG,
 };
 
 pub fn routes() -> Vec<Route> {

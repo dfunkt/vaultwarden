@@ -1,14 +1,14 @@
 use data_encoding::BASE32;
-use rocket::serde::json::Json;
 use rocket::Route;
+use rocket::serde::json::Json;
 
 use crate::{
-    api::{core::log_user_event, core::two_factor::_generate_recover_code, EmptyResult, JsonResult, PasswordOrOtpData},
+    api::{EmptyResult, JsonResult, PasswordOrOtpData, core::log_user_event, core::two_factor::_generate_recover_code},
     auth::{ClientIp, Headers},
     crypto,
     db::{
-        models::{EventType, TwoFactor, TwoFactorType, UserId},
         DbConn,
+        models::{EventType, TwoFactor, TwoFactorType, UserId},
     },
     util::NumberOrString,
 };
@@ -115,7 +115,7 @@ pub async fn validate_totp_code(
     ip: &ClientIp,
     conn: &mut DbConn,
 ) -> EmptyResult {
-    use totp_lite::{totp_custom, Sha1};
+    use totp_lite::{Sha1, totp_custom};
 
     let Ok(decoded_secret) = BASE32.decode(secret.as_bytes()) else {
         err!("Invalid TOTP secret")

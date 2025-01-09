@@ -3,7 +3,7 @@ use derive_more::{Display, From};
 use serde_json::Value;
 
 use super::{AuthRequest, UserId};
-use crate::{crypto, util::format_date, CONFIG};
+use crate::{CONFIG, crypto, util::format_date};
 use macros::IdFromParam;
 
 db_object! {
@@ -97,7 +97,7 @@ impl Device {
         // let orgmanager: Vec<_> = members.iter().filter(|m| m.atype == 3).map(|o| o.org_uuid.clone()).collect();
 
         // Create the JWT claims struct, to send to the client
-        use crate::auth::{encode_jwt, LoginJwtClaims, DEFAULT_VALIDITY, JWT_LOGIN_ISSUER};
+        use crate::auth::{DEFAULT_VALIDITY, JWT_LOGIN_ISSUER, LoginJwtClaims, encode_jwt};
         let claims = LoginJwtClaims {
             nbf: time_now.timestamp(),
             exp: (time_now + *DEFAULT_VALIDITY).timestamp(),

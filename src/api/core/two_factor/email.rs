@@ -1,20 +1,21 @@
 use chrono::{DateTime, TimeDelta, Utc};
-use rocket::serde::json::Json;
 use rocket::Route;
+use rocket::serde::json::Json;
 
 use crate::{
+    CONFIG,
     api::{
-        core::{log_user_event, two_factor::_generate_recover_code},
         EmptyResult, JsonResult, PasswordOrOtpData,
+        core::{log_user_event, two_factor::_generate_recover_code},
     },
     auth::Headers,
     crypto,
     db::{
-        models::{EventType, TwoFactor, TwoFactorType, User, UserId},
         DbConn,
+        models::{EventType, TwoFactor, TwoFactorType, User, UserId},
     },
     error::{Error, MapResult},
-    mail, CONFIG,
+    mail,
 };
 
 pub fn routes() -> Vec<Route> {

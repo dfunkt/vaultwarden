@@ -2,8 +2,8 @@ use std::{
     env::consts::EXE_SUFFIX,
     process::exit,
     sync::{
-        atomic::{AtomicBool, Ordering},
         LazyLock, RwLock,
+        atomic::{AtomicBool, Ordering},
     },
 };
 
@@ -778,7 +778,9 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
     let connect_src = cfg.allowed_connect_src.to_lowercase();
     for url in connect_src.split_whitespace() {
         if !url.starts_with("https://") || Url::parse(url).is_err() {
-            err!("ALLOWED_CONNECT_SRC variable contains one or more invalid URLs. Only FQDN's starting with https are allowed");
+            err!(
+                "ALLOWED_CONNECT_SRC variable contains one or more invalid URLs. Only FQDN's starting with https are allowed"
+            );
         }
     }
 
@@ -846,9 +848,11 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
     let configured_flags = parse_experimental_client_feature_flags(&cfg.experimental_client_feature_flags);
     let invalid_flags: Vec<_> = configured_flags.keys().filter(|flag| !KNOWN_FLAGS.contains(&flag.as_str())).collect();
     if !invalid_flags.is_empty() {
-        err!(format!("Unrecognized experimental client feature flags: {invalid_flags:?}.\n\n\
+        err!(format!(
+            "Unrecognized experimental client feature flags: {invalid_flags:?}.\n\n\
                      Please ensure all feature flags are spelled correctly and that they are supported in this version.\n\
-                     Supported flags: {KNOWN_FLAGS:?}"));
+                     Supported flags: {KNOWN_FLAGS:?}"
+        ));
     }
 
     const MAX_FILESIZE_KB: i64 = i64::MAX >> 10;
@@ -886,7 +890,9 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
         if let Some(yubico_server) = &cfg.yubico_server {
             let yubico_server = yubico_server.to_lowercase();
             if !yubico_server.starts_with("https://") {
-                err!("`YUBICO_SERVER` must be a valid URL and start with 'https://'. Either unset this variable or provide a valid URL.")
+                err!(
+                    "`YUBICO_SERVER` must be a valid URL and start with 'https://'. Either unset this variable or provide a valid URL."
+                )
             }
         }
     }
@@ -938,7 +944,9 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
             }
 
             if cfg.smtp_username.is_some() != cfg.smtp_password.is_some() {
-                err!("Both `SMTP_USERNAME` and `SMTP_PASSWORD` need to be set to enable email authentication without `USE_SENDMAIL`")
+                err!(
+                    "Both `SMTP_USERNAME` and `SMTP_PASSWORD` need to be set to enable email authentication without `USE_SENDMAIL`"
+                )
             }
         }
 
