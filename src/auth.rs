@@ -46,13 +46,10 @@ static PUBLIC_ED25519_KEY: OnceLock<DecodingKey> = OnceLock::new();
 pub fn initialize_keys() -> Result<(), Error> {
     fn read_key(create_if_missing: bool) -> Result<(PKey<Private>, Vec<u8>), Error> {
         let mut priv_key_buffer = Vec::with_capacity(128);
+        let key_path = CONFIG.private_ed25519_key();
 
-        let mut priv_key_file = File::options()
-            .create(create_if_missing)
-            .truncate(false)
-            .read(true)
-            .write(create_if_missing)
-            .open(CONFIG.private_ed25519_key())?;
+        let mut priv_key_file =
+            File::options().create(create_if_missing).read(true).write(create_if_missing).open(&key_path)?;
 
         #[allow(clippy::verbose_file_reads)]
         let bytes_read = priv_key_file.read_to_end(&mut priv_key_buffer)?;
@@ -64,10 +61,10 @@ pub fn initialize_keys() -> Result<(), Error> {
             let ed25519_key = PKey::generate_ed25519()?;
             priv_key_buffer = ed25519_key.private_key_to_pem_pkcs8()?;
             priv_key_file.write_all(&priv_key_buffer)?;
-            info!("Private key '{}' created correctly", CONFIG.private_ed25519_key());
+            info!("Private key '{}' created correctly", key_path);
             ed25519_key
         } else {
-            err!("Private key does not exist or invalid format", CONFIG.private_ed25519_key());
+            err!("Private key '{}' does not exist or is invalid", key_path);
         };
 
         Ok((ed25519_key, priv_key_buffer))
@@ -77,7 +74,7 @@ pub fn initialize_keys() -> Result<(), Error> {
     let pub_key_buffer = priv_key.public_key_to_pem()?;
 
     let enc = EncodingKey::from_ed_pem(&priv_key_buffer)?;
-    let dec: DecodingKey = DecodingKey::from_ed_pem(&pub_key_buffer)?;
+    let dec = DecodingKey::from_ed_pem(&pub_key_buffer)?;
     if PRIVATE_ED25519_KEY.set(enc).is_err() {
         err!("PRIVATE_ED25519_KEY must only be initialized once")
     }
