@@ -3,7 +3,7 @@ use chrono::{NaiveDateTime, TimeDelta, Utc};
 use serde_json::Value;
 
 use super::{CipherId, CollectionId, GroupId, MembershipId, OrgPolicyId, OrganizationId, UserId};
-use crate::{api::EmptyResult, db::DbConn, error::MapResult, CONFIG};
+use crate::{CONFIG, api::EmptyResult, db::DbConn, error::MapResult};
 
 // https://bitwarden.com/help/event-logs/
 

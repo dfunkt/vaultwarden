@@ -1,20 +1,20 @@
 use chrono::{TimeDelta, Utc};
 use data_encoding::BASE32;
-use rocket::serde::json::Json;
 use rocket::Route;
+use rocket::serde::json::Json;
 use serde_json::Value;
 
 use crate::{
+    CONFIG,
     api::{
-        core::{log_event, log_user_event},
         EmptyResult, JsonResult, PasswordOrOtpData,
+        core::{log_event, log_user_event},
     },
     auth::{ClientHeaders, Headers},
     crypto,
-    db::{models::*, DbConn, DbPool},
+    db::{DbConn, DbPool, models::*},
     mail,
     util::NumberOrString,
-    CONFIG,
 };
 
 pub mod authenticator;
