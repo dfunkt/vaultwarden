@@ -2,8 +2,8 @@ use std::{
     env::consts::EXE_SUFFIX,
     process::exit,
     sync::{
-        atomic::{AtomicBool, Ordering},
         LazyLock, RwLock,
+        atomic::{AtomicBool, Ordering},
     },
 };
 
@@ -60,7 +60,7 @@ macro_rules! make_config {
         $group:ident $(: $group_enabled:ident)? {
         $(
             $(#[doc = $doc:literal])+
-            $name:ident : $ty:ident, $editable:literal, $none_action:ident $(, $default:expr)?;
+            $name:ident : $ty:ident, $editable:literal, $none_action:ident $(, $default:expr_2021)?;
         )+},
     )+) => {
         pub struct Config { inner: RwLock<Inner> }
@@ -331,24 +331,24 @@ macro_rules! make_config {
     };
 
     // Support string print
-    ( @supportstr $name:ident, $value:expr, Pass, option ) => { serde_json::to_value($value.as_ref().map(|_| String::from("***"))).unwrap() }; // Optional pass, we map to an Option<String> with "***"
-    ( @supportstr $name:ident, $value:expr, Pass, $none_action:ident ) => { "***".into() }; // Required pass, we return "***"
-    ( @supportstr $name:ident, $value:expr, String, option ) => { // Optional other value, we return as is or convert to string to apply the privacy config
+    ( @supportstr $name:ident, $value:expr_2021, Pass, option ) => { serde_json::to_value($value.as_ref().map(|_| String::from("***"))).unwrap() }; // Optional pass, we map to an Option<String> with "***"
+    ( @supportstr $name:ident, $value:expr_2021, Pass, $none_action:ident ) => { "***".into() }; // Required pass, we return "***"
+    ( @supportstr $name:ident, $value:expr_2021, String, option ) => { // Optional other value, we return as is or convert to string to apply the privacy config
         if PRIVACY_CONFIG.contains(&stringify!($name)) {
             serde_json::to_value($value.as_ref().map(|x| _privacy_mask(x) )).unwrap()
         } else {
             serde_json::to_value($value).unwrap()
         }
     };
-    ( @supportstr $name:ident, $value:expr, String, $none_action:ident ) => { // Required other value, we return as is or convert to string to apply the privacy config
+    ( @supportstr $name:ident, $value:expr_2021, String, $none_action:ident ) => { // Required other value, we return as is or convert to string to apply the privacy config
         if PRIVACY_CONFIG.contains(&stringify!($name)) {
             _privacy_mask(&$value).into()
         } else {
             ($value).into()
         }
     };
-    ( @supportstr $name:ident, $value:expr, $ty:ty, option ) => { serde_json::to_value($value).unwrap() }; // Optional other value, we return as is or convert to string to apply the privacy config
-    ( @supportstr $name:ident, $value:expr, $ty:ty, $none_action:ident ) => { ($value).into() }; // Required other value, we return as is or convert to string to apply the privacy config
+    ( @supportstr $name:ident, $value:expr_2021, $ty:ty, option ) => { serde_json::to_value($value).unwrap() }; // Optional other value, we return as is or convert to string to apply the privacy config
+    ( @supportstr $name:ident, $value:expr_2021, $ty:ty, $none_action:ident ) => { ($value).into() }; // Required other value, we return as is or convert to string to apply the privacy config
 
     // Group or empty string
     ( @show ) => { "" };
@@ -359,9 +359,9 @@ macro_rules! make_config {
     ( @type $ty:ty, $id:ident) => { $ty };
 
     // Generate the values depending on none_action
-    ( @build $value:expr, $config:expr, option, ) => { $value };
-    ( @build $value:expr, $config:expr, def, $default:expr ) => { $value.unwrap_or($default) };
-    ( @build $value:expr, $config:expr, auto, $default_fn:expr ) => {{
+    ( @build $value:expr_2021, $config:expr_2021, option, ) => { $value };
+    ( @build $value:expr_2021, $config:expr_2021, def, $default:expr_2021 ) => { $value.unwrap_or($default) };
+    ( @build $value:expr_2021, $config:expr_2021, auto, $default_fn:expr_2021 ) => {{
         match $value {
             Some(v) => v,
             None => {
@@ -370,13 +370,13 @@ macro_rules! make_config {
             }
         }
     }};
-    ( @build $value:expr, $config:expr, generated, $default_fn:expr ) => {{
+    ( @build $value:expr_2021, $config:expr_2021, generated, $default_fn:expr_2021 ) => {{
         let f: &dyn Fn(&ConfigItems) -> _ = &$default_fn;
         f($config)
     }};
 
-    ( @getenv $name:expr, bool ) => { get_env_bool($name) };
-    ( @getenv $name:expr, $ty:ident ) => { get_env($name) };
+    ( @getenv $name:expr_2021, bool ) => { get_env_bool($name) };
+    ( @getenv $name:expr_2021, $ty:ident ) => { get_env($name) };
 
 }
 
@@ -840,7 +840,9 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
     let connect_src = cfg.allowed_connect_src.to_lowercase();
     for url in connect_src.split_whitespace() {
         if !url.starts_with("https://") || Url::parse(url).is_err() {
-            err!("ALLOWED_CONNECT_SRC variable contains one or more invalid URLs. Only FQDN's starting with https are allowed");
+            err!(
+                "ALLOWED_CONNECT_SRC variable contains one or more invalid URLs. Only FQDN's starting with https are allowed"
+            );
         }
     }
 
@@ -917,9 +919,11 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
     let configured_flags = parse_experimental_client_feature_flags(&cfg.experimental_client_feature_flags);
     let invalid_flags: Vec<_> = configured_flags.keys().filter(|flag| !KNOWN_FLAGS.contains(&flag.as_str())).collect();
     if !invalid_flags.is_empty() {
-        err!(format!("Unrecognized experimental client feature flags: {invalid_flags:?}.\n\n\
+        err!(format!(
+            "Unrecognized experimental client feature flags: {invalid_flags:?}.\n\n\
                      Please ensure all feature flags are spelled correctly and that they are supported in this version.\n\
-                     Supported flags: {KNOWN_FLAGS:?}"));
+                     Supported flags: {KNOWN_FLAGS:?}"
+        ));
     }
 
     const MAX_FILESIZE_KB: i64 = i64::MAX >> 10;
@@ -967,7 +971,9 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
         if let Some(yubico_server) = &cfg.yubico_server {
             let yubico_server = yubico_server.to_lowercase();
             if !yubico_server.starts_with("https://") {
-                err!("`YUBICO_SERVER` must be a valid URL and start with 'https://'. Either unset this variable or provide a valid URL.")
+                err!(
+                    "`YUBICO_SERVER` must be a valid URL and start with 'https://'. Either unset this variable or provide a valid URL."
+                )
             }
         }
     }
@@ -1019,7 +1025,9 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
             }
 
             if cfg.smtp_username.is_some() != cfg.smtp_password.is_some() {
-                err!("Both `SMTP_USERNAME` and `SMTP_PASSWORD` need to be set to enable email authentication without `USE_SENDMAIL`")
+                err!(
+                    "Both `SMTP_USERNAME` and `SMTP_PASSWORD` need to be set to enable email authentication without `USE_SENDMAIL`"
+                )
             }
         }
 
@@ -1588,15 +1596,15 @@ where
     hb.register_helper("vwver", Box::new(vwver));
 
     macro_rules! reg {
-        ($name:expr) => {{
+        ($name:expr_2021) => {{
             let template = include_str!(concat!("static/templates/", $name, ".hbs"));
             hb.register_template_string($name, template).unwrap();
         }};
-        ($name:expr, $ext:expr) => {{
+        ($name:expr_2021, $ext:expr_2021) => {{
             reg!($name);
             reg!(concat!($name, $ext));
         }};
-        (@withfallback $name:expr) => {{
+        (@withfallback $name:expr_2021) => {{
             let template = include_str!(concat!("static/templates/", $name, ".hbs"));
             hb.register_template_string($name, template).unwrap();
             hb.register_template_string(concat!("fallback_", $name), template).unwrap();

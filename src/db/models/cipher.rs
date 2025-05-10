@@ -1,5 +1,5 @@
-use crate::util::LowerCase;
 use crate::CONFIG;
+use crate::util::LowerCase;
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use derive_more::{AsRef, Deref, Display, From};
 use serde_json::Value;

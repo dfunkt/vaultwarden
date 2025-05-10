@@ -1,20 +1,20 @@
 use num_traits::FromPrimitive;
-use rocket::serde::json::Json;
 use rocket::Route;
+use rocket::serde::json::Json;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
 use crate::api::admin::FAKE_ADMIN_UUID;
 use crate::{
-    api::{
-        core::{accept_org_invite, log_event, two_factor, CipherSyncData, CipherSyncType},
-        EmptyResult, JsonResult, Notify, PasswordOrOtpData, UpdateType,
-    },
-    auth::{decode_invite, AdminHeaders, Headers, ManagerHeaders, ManagerHeadersLoose, OrgMemberHeaders, OwnerHeaders},
-    db::{models::*, DbConn},
-    mail,
-    util::{convert_json_key_lcase_first, get_uuid, NumberOrString},
     CONFIG,
+    api::{
+        EmptyResult, JsonResult, Notify, PasswordOrOtpData, UpdateType,
+        core::{CipherSyncData, CipherSyncType, accept_org_invite, log_event, two_factor},
+    },
+    auth::{AdminHeaders, Headers, ManagerHeaders, ManagerHeadersLoose, OrgMemberHeaders, OwnerHeaders, decode_invite},
+    db::{DbConn, models::*},
+    mail,
+    util::{NumberOrString, convert_json_key_lcase_first, get_uuid},
 };
 
 pub fn routes() -> Vec<Route> {
@@ -1653,7 +1653,9 @@ async fn edit_member(
                 }
             }
             Err(OrgPolicyErr::SingleOrgEnforced) => {
-                err!("You cannot modify this user to this type because they are a member of an organization which forbids it");
+                err!(
+                    "You cannot modify this user to this type because they are a member of an organization which forbids it"
+                );
             }
         }
     }
@@ -1849,8 +1851,8 @@ async fn bulk_public_keys(
     })))
 }
 
-use super::ciphers::update_cipher_from_data;
 use super::ciphers::CipherData;
+use super::ciphers::update_cipher_from_data;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -2640,7 +2642,9 @@ async fn _restore_member(
                         }
                     }
                     Err(OrgPolicyErr::SingleOrgEnforced) => {
-                        err!("You cannot restore this user because they are a member of an organization which forbids it");
+                        err!(
+                            "You cannot restore this user because they are a member of an organization which forbids it"
+                        );
                     }
                 }
             }
