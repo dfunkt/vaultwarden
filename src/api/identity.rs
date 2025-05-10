@@ -2,26 +2,27 @@ use chrono::Utc;
 use num_traits::FromPrimitive;
 use rocket::serde::json::Json;
 use rocket::{
-    form::{Form, FromForm},
     Route,
+    form::{Form, FromForm},
 };
 use serde_json::Value;
 
 use crate::{
+    CONFIG,
     api::{
+        ApiResult, EmptyResult, JsonResult,
         core::{
-            accounts::{PreloginData, RegisterData, _prelogin, _register},
+            accounts::{_prelogin, _register, PreloginData, RegisterData},
             log_user_event,
             two_factor::{authenticator, duo, duo_oidc, email, enforce_2fa_policy, webauthn, yubikey},
         },
         master_password_policy,
         push::register_push_device,
-        ApiResult, EmptyResult, JsonResult,
     },
-    auth::{generate_organization_api_key_login_claims, ClientHeaders, ClientIp, ClientVersion},
-    db::{models::*, DbConn},
+    auth::{ClientHeaders, ClientIp, ClientVersion, generate_organization_api_key_login_claims},
+    db::{DbConn, models::*},
     error::MapResult,
-    mail, util, CONFIG,
+    mail, util,
 };
 
 pub fn routes() -> Vec<Route> {
@@ -735,7 +736,7 @@ async fn register_verification_email(
             // There is still a timing side channel here in that the code
             // paths that send mail take noticeably longer than ones that
             // don't. Add a randomized sleep to mitigate this somewhat.
-            use rand::{rngs::SmallRng, Rng, SeedableRng};
+            use rand::{Rng, SeedableRng, rngs::SmallRng};
             let mut rng = SmallRng::from_os_rng();
             let delta: i32 = 100;
             let sleep_ms = (1_000 + rng.random_range(-delta..=delta)) as u64;
