@@ -1,21 +1,21 @@
 use std::path::{Path, PathBuf};
 
 use rocket::{
+    Catcher, Route,
     fs::NamedFile,
     http::ContentType,
-    response::{content::RawCss as Css, content::RawHtml as Html, Redirect},
+    response::{Redirect, content::RawCss as Css, content::RawHtml as Html},
     serde::json::Json,
-    Catcher, Route,
 };
 use serde_json::Value;
 
 use crate::{
-    api::{core::now, ApiResult, EmptyResult},
+    CONFIG,
+    api::{ApiResult, EmptyResult, core::now},
     auth::decode_file_download,
     db::models::{AttachmentId, CipherId},
     error::Error,
     util::Cached,
-    CONFIG,
 };
 
 pub fn routes() -> Vec<Route> {

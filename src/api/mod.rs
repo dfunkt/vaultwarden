@@ -33,8 +33,8 @@ pub use crate::api::{
     web::static_files,
 };
 use crate::db::{
-    models::{OrgPolicy, OrgPolicyType, User},
     DbConn,
+    models::{OrgPolicy, OrgPolicyType, User},
 };
 
 // Type aliases for API methods results

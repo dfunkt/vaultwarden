@@ -4,7 +4,7 @@ use serde_json::Value;
 use crate::{
     api::{EmptyResult, JsonResult, Notify, UpdateType},
     auth::Headers,
-    db::{models::*, DbConn},
+    db::{DbConn, models::*},
 };
 
 pub fn routes() -> Vec<rocket::Route> {
