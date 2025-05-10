@@ -9,15 +9,15 @@ use rocket::serde::json::Json;
 use serde_json::Value;
 
 use crate::{
+    CONFIG,
     api::{ApiResult, EmptyResult, JsonResult, Notify, UpdateType},
     auth::{ClientIp, Headers, Host},
     config::PathType,
     db::{
-        models::{Device, OrgPolicy, OrgPolicyType, Send, SendFileId, SendId, SendType, UserId},
         DbConn, DbPool,
+        models::{Device, OrgPolicy, OrgPolicyType, Send, SendFileId, SendId, SendType, UserId},
     },
-    util::{save_temp_file, NumberOrString},
-    CONFIG,
+    util::{NumberOrString, save_temp_file},
 };
 
 const SEND_INACCESSIBLE_MSG: &str = "Send does not exist or is no longer available";
@@ -59,10 +59,13 @@ pub fn routes() -> Vec<rocket::Route> {
 
 pub async fn purge_sends(pool: DbPool) {
     debug!("Purging sends");
-    if let Ok(conn) = pool.get().await {
-        Send::purge(&conn).await;
-    } else {
-        error!("Failed to get DB connection while purging sends")
+    match pool.get().await {
+        Ok(conn) => {
+            Send::purge(&conn).await;
+        }
+        _ => {
+            error!("Failed to get DB connection while purging sends")
+        }
     }
 }
 

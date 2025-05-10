@@ -1,38 +1,39 @@
 use chrono::{NaiveDateTime, Utc};
 use num_traits::FromPrimitive;
 use rocket::{
+    Route,
     form::{Form, FromForm},
     http::Status,
     response::Redirect,
     serde::json::Json,
-    Route,
 };
 use serde_json::Value;
 
 use crate::{
+    CONFIG,
     api::{
+        ApiResult, EmptyResult, JsonResult,
         core::{
-            accounts::{PreloginData, RegisterData, _prelogin, _register, kdf_upgrade},
+            accounts::{_prelogin, _register, PreloginData, RegisterData, kdf_upgrade},
             log_user_event,
             two_factor::{authenticator, duo, duo_oidc, email, enforce_2fa_policy, webauthn, yubikey},
         },
         master_password_policy,
         push::register_push_device,
-        ApiResult, EmptyResult, JsonResult,
     },
     auth,
-    auth::{generate_organization_api_key_login_claims, AuthMethod, ClientHeaders, ClientIp, ClientVersion},
+    auth::{AuthMethod, ClientHeaders, ClientIp, ClientVersion, generate_organization_api_key_login_claims},
     db::{
+        DbConn,
         models::{
             AuthRequest, AuthRequestId, Device, DeviceId, EventType, Invitation, OrganizationApiKey, OrganizationId,
             SsoNonce, SsoUser, TwoFactor, TwoFactorIncomplete, TwoFactorType, User, UserId,
         },
-        DbConn,
     },
     error::MapResult,
     mail, sso,
     sso::{OIDCCode, OIDCState},
-    util, CONFIG,
+    util,
 };
 
 pub fn routes() -> Vec<Route> {
@@ -923,7 +924,7 @@ async fn register_verification_email(
             // There is still a timing side channel here in that the code
             // paths that send mail take noticeably longer than ones that
             // don't. Add a randomized sleep to mitigate this somewhat.
-            use rand::{rngs::SmallRng, Rng, SeedableRng};
+            use rand::{Rng, SeedableRng, rngs::SmallRng};
             let mut rng = SmallRng::from_os_rng();
             let delta: i32 = 100;
             let sleep_ms = (1_000 + rng.random_range(-delta..=delta)) as u64;

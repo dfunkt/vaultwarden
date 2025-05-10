@@ -6,15 +6,15 @@ use std::{
 };
 
 use diesel::{
+    Connection, RunQueryDsl,
     connection::SimpleConnection,
     r2d2::{ConnectionManager, CustomizeConnection, Pool, PooledConnection},
-    Connection, RunQueryDsl,
 };
 
 use rocket::{
+    Request,
     http::Status,
     request::{FromRequest, Outcome},
-    Request,
 };
 
 use tokio::{
@@ -23,8 +23,8 @@ use tokio::{
 };
 
 use crate::{
-    error::{Error, MapResult},
     CONFIG,
+    error::{Error, MapResult},
 };
 
 // These changes are based on Rocket 0.5-rc wrapper of Diesel: https://github.com/SergioBenitez/Rocket/blob/v0.5-rc/contrib/sync_db_pools

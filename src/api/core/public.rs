@@ -1,23 +1,24 @@
 use chrono::Utc;
 use rocket::{
+    Request, Route,
     request::{FromRequest, Outcome},
     serde::json::Json,
-    Request, Route,
 };
 
 use std::collections::HashSet;
 
 use crate::{
+    CONFIG,
     api::EmptyResult,
     auth,
     db::{
+        DbConn,
         models::{
             Group, GroupUser, Invitation, Membership, MembershipStatus, MembershipType, Organization,
             OrganizationApiKey, OrganizationId, User,
         },
-        DbConn,
     },
-    mail, CONFIG,
+    mail,
 };
 
 pub fn routes() -> Vec<Route> {

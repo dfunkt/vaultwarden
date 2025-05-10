@@ -3,8 +3,8 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use crate::api::EmptyResult;
-use crate::db::schema::{org_policies, users_organizations};
 use crate::db::DbConn;
+use crate::db::schema::{org_policies, users_organizations};
 use crate::error::MapResult;
 use diesel::prelude::*;
 
