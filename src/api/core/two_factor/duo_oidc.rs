@@ -1,21 +1,21 @@
 use chrono::Utc;
 use data_encoding::HEXLOWER;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation};
-use reqwest::{header, StatusCode};
-use ring::digest::{digest, Digest, SHA512_256};
+use reqwest::{StatusCode, header};
+use ring::digest::{Digest, SHA512_256, digest};
 use serde::Serialize;
 use std::collections::HashMap;
 
 use crate::{
-    api::{core::two_factor::duo::get_duo_keys_email, EmptyResult},
+    CONFIG,
+    api::{EmptyResult, core::two_factor::duo::get_duo_keys_email},
     crypto,
     db::{
-        models::{DeviceId, EventType, TwoFactorDuoContext},
         DbConn, DbPool,
+        models::{DeviceId, EventType, TwoFactorDuoContext},
     },
     error::Error,
     http_client::make_http_request,
-    CONFIG,
 };
 use url::Url;
 
