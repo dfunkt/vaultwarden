@@ -5,10 +5,10 @@ use super::{
     CipherId, CollectionGroup, GroupUser, Membership, MembershipId, MembershipStatus, MembershipType, OrganizationId,
     User, UserId,
 };
+use crate::CONFIG;
 use crate::db::schema::{
     ciphers_collections, collections, collections_groups, groups, groups_users, users_collections, users_organizations,
 };
-use crate::CONFIG;
 use diesel::prelude::*;
 use macros::UuidFromParam;
 

@@ -12,11 +12,11 @@ use super::{
     CipherId, Collection, CollectionGroup, CollectionId, CollectionUser, Group, GroupId, GroupUser, OrgPolicy,
     OrgPolicyType, TwoFactor, User, UserId,
 };
+use crate::CONFIG;
 use crate::db::schema::{
     ciphers, ciphers_collections, collections_groups, groups, groups_users, org_policies, organization_api_key,
     organizations, users, users_collections, users_organizations,
 };
-use crate::CONFIG;
 use macros::UuidFromParam;
 
 #[derive(Identifiable, Queryable, Insertable, AsChangeset)]

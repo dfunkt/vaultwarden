@@ -6,10 +6,10 @@ use regex::Regex;
 use url::Url;
 
 use crate::{
+    CONFIG,
     api::{ApiResult, EmptyResult},
     db::models::SsoNonce,
     sso::{OIDCCode, OIDCState},
-    CONFIG,
 };
 
 static CLIENT_CACHE_KEY: LazyLock<String> = LazyLock::new(|| "sso-client".to_string());
