@@ -8,14 +8,14 @@ use super::{
     Cipher, Device, EmergencyAccess, Favorite, Folder, Membership, MembershipType, TwoFactor, TwoFactorIncomplete,
 };
 use crate::{
+    CONFIG,
     api::EmptyResult,
     crypto,
-    db::models::DeviceId,
     db::DbConn,
+    db::models::DeviceId,
     error::MapResult,
     sso::OIDCIdentifier,
     util::{format_date, get_uuid, retry},
-    CONFIG,
 };
 use macros::UuidFromParam;
 

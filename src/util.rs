@@ -5,18 +5,18 @@ use std::{collections::HashMap, io::Cursor, path::Path};
 
 use num_traits::ToPrimitive;
 use rocket::{
+    Data, Orbit, Request, Response, Rocket,
     fairing::{Fairing, Info, Kind},
     http::{ContentType, Header, HeaderMap, Method, Status},
     response::{self, Responder},
-    Data, Orbit, Request, Response, Rocket,
 };
 
 use tokio::{
     runtime::Handle,
-    time::{sleep, Duration},
+    time::{Duration, sleep},
 };
 
-use crate::{config::PathType, CONFIG};
+use crate::{CONFIG, config::PathType};
 
 pub struct AppHeaders();
 
@@ -76,7 +76,9 @@ impl Fairing for AppHeaders {
             let csp = if is_image {
                 // Prevent scripts, frames, objects, etc., from loading with images, mainly for SVG images, since these could contain JavaScript and other unsafe items.
                 // Even though we sanitize SVG images before storing and viewing them, it's better to prevent allowing these elements.
-                String::from("default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'none'; frame-src 'none'; object-src 'none")
+                String::from(
+                    "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'none'; frame-src 'none'; object-src 'none",
+                )
             } else {
                 // # Frame Ancestors:
                 // Chrome Web Store: https://chrome.google.com/webstore/detail/bitwarden-free-password-m/nngceckbapebfimnlniiiahkandclblb
@@ -374,10 +376,9 @@ where
     S: AsRef<str>,
     T: FromStr,
 {
-    if let Some(Ok(value)) = string.map(|s| s.as_ref().parse::<T>()) {
-        Some(value)
-    } else {
-        None
+    match string.map(|s| s.as_ref().parse::<T>()) {
+        Some(Ok(value)) => Some(value),
+        _ => None,
     }
 }
 

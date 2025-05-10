@@ -33,8 +33,8 @@ pub use self::organization::{
     OrganizationId,
 };
 pub use self::send::{
-    id::{SendFileId, SendId},
     Send, SendType,
+    id::{SendFileId, SendId},
 };
 pub use self::sso_nonce::SsoNonce;
 pub use self::two_factor::{TwoFactor, TwoFactorType};

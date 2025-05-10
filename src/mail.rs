@@ -1,16 +1,17 @@
 use chrono::NaiveDateTime;
-use percent_encoding::{percent_encode, NON_ALPHANUMERIC};
+use percent_encoding::{NON_ALPHANUMERIC, percent_encode};
 use std::{env::consts::EXE_SUFFIX, str::FromStr};
 
 use lettre::{
+    Address, AsyncSendmailTransport, AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
     message::{Attachment, Body, Mailbox, Message, MultiPart, SinglePart},
     transport::smtp::authentication::{Credentials, Mechanism as SmtpAuthMechanism},
     transport::smtp::client::{Tls, TlsParameters},
     transport::smtp::extension::ClientId,
-    Address, AsyncSendmailTransport, AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
 };
 
 use crate::{
+    CONFIG,
     api::EmptyResult,
     auth::{
         encode_jwt, generate_delete_claims, generate_emergency_access_invite_claims, generate_invite_claims,
@@ -18,7 +19,6 @@ use crate::{
     },
     db::models::{Device, DeviceType, EmergencyAccessId, MembershipId, OrganizationId, User, UserId},
     error::Error,
-    CONFIG,
 };
 
 fn sendmail_transport() -> AsyncSendmailTransport<Tokio1Executor> {
