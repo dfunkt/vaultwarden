@@ -1,20 +1,20 @@
-use rocket::serde::json::Json;
 use rocket::Route;
+use rocket::serde::json::Json;
 use serde_json::Value;
 use yubico::{config::Config, verify_async};
 
 use crate::{
+    CONFIG,
     api::{
-        core::{log_user_event, two_factor::_generate_recover_code},
         EmptyResult, JsonResult, PasswordOrOtpData,
+        core::{log_user_event, two_factor::_generate_recover_code},
     },
     auth::Headers,
     db::{
-        models::{EventType, TwoFactor, TwoFactorType},
         DbConn,
+        models::{EventType, TwoFactor, TwoFactorType},
     },
     error::{Error, MapResult},
-    CONFIG,
 };
 
 pub fn routes() -> Vec<Route> {

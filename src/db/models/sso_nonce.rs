@@ -3,7 +3,7 @@ use chrono::{NaiveDateTime, Utc};
 use crate::api::EmptyResult;
 use crate::db::{DbConn, DbPool};
 use crate::error::MapResult;
-use crate::sso::{OIDCState, NONCE_EXPIRATION};
+use crate::sso::{NONCE_EXPIRATION, OIDCState};
 
 db_object! {
     #[derive(Identifiable, Queryable, Insertable)]
@@ -75,15 +75,18 @@ impl SsoNonce {
 
     pub async fn delete_expired(pool: DbPool) -> EmptyResult {
         debug!("Purging expired sso_nonce");
-        if let Ok(conn) = pool.get().await {
-            let oldest = Utc::now().naive_utc() - *NONCE_EXPIRATION;
-            db_run! { conn: {
-                diesel::delete(sso_nonce::table.filter(sso_nonce::created_at.lt(oldest)))
-                    .execute(conn)
-                    .map_res("Error deleting expired SSO nonce")
-            }}
-        } else {
-            err!("Failed to get DB connection while purging expired sso_nonce")
+        match pool.get().await {
+            Ok(conn) => {
+                let oldest = Utc::now().naive_utc() - *NONCE_EXPIRATION;
+                db_run! { conn: {
+                    diesel::delete(sso_nonce::table.filter(sso_nonce::created_at.lt(oldest)))
+                        .execute(conn)
+                        .map_res("Error deleting expired SSO nonce")
+                }}
+            }
+            _ => {
+                err!("Failed to get DB connection while purging expired sso_nonce")
+            }
         }
     }
 }
