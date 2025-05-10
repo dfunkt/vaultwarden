@@ -5,27 +5,27 @@ use num_traits::ToPrimitive;
 use rocket::fs::TempFile;
 use rocket::serde::json::Json;
 use rocket::{
-    form::{Form, FromForm},
     Route,
+    form::{Form, FromForm},
 };
 use serde_json::Value;
 
 use crate::auth::ClientVersion;
-use crate::util::{save_temp_file, NumberOrString};
+use crate::util::{NumberOrString, save_temp_file};
 use crate::{
-    api::{self, core::log_event, EmptyResult, JsonResult, Notify, PasswordOrOtpData, UpdateType},
+    CONFIG,
+    api::{self, EmptyResult, JsonResult, Notify, PasswordOrOtpData, UpdateType, core::log_event},
     auth::Headers,
     config::PathType,
     crypto,
     db::{
+        DbConn, DbPool,
         models::{
             Attachment, AttachmentId, Cipher, CipherId, Collection, CollectionCipher, CollectionGroup, CollectionId,
             CollectionUser, EventType, Favorite, Folder, FolderCipher, FolderId, Group, Membership, MembershipType,
             OrgPolicy, OrgPolicyType, OrganizationId, RepromptType, Send, UserId,
         },
-        DbConn, DbPool,
     },
-    CONFIG,
 };
 
 use super::folders::FolderData;
@@ -100,10 +100,13 @@ pub fn routes() -> Vec<Route> {
 
 pub async fn purge_trashed_ciphers(pool: DbPool) {
     debug!("Purging trashed ciphers");
-    if let Ok(conn) = pool.get().await {
-        Cipher::purge_trash(&conn).await;
-    } else {
-        error!("Failed to get DB connection while purging trashed ciphers")
+    match pool.get().await {
+        Ok(conn) => {
+            Cipher::purge_trash(&conn).await;
+        }
+        _ => {
+            error!("Failed to get DB connection while purging trashed ciphers")
+        }
     }
 }
 

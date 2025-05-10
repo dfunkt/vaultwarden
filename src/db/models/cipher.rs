@@ -1,9 +1,9 @@
+use crate::CONFIG;
 use crate::db::schema::{
     ciphers, ciphers_collections, collections, collections_groups, folders, folders_ciphers, groups, groups_users,
     users_collections, users_organizations,
 };
 use crate::util::LowerCase;
-use crate::CONFIG;
 use chrono::{NaiveDateTime, TimeDelta, Utc};
 use derive_more::{AsRef, Deref, Display, From};
 use diesel::prelude::*;
