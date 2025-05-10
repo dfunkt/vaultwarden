@@ -7,15 +7,15 @@ use regex::Regex;
 use url::Url;
 
 use crate::{
+    CONFIG,
     api::ApiResult,
     auth,
-    auth::{AuthMethod, AuthTokens, TokenWrapper, BW_EXPIRATION, DEFAULT_REFRESH_VALIDITY},
+    auth::{AuthMethod, AuthTokens, BW_EXPIRATION, DEFAULT_REFRESH_VALIDITY, TokenWrapper},
     db::{
-        models::{Device, SsoNonce, User},
         DbConn,
+        models::{Device, SsoNonce, User},
     },
     sso_client::Client,
-    CONFIG,
 };
 
 pub static FAKE_IDENTIFIER: &str = "Vaultwarden";

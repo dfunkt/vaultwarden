@@ -5,13 +5,14 @@ use std::{
 };
 
 use chrono::{DateTime, TimeDelta, Utc};
-use jsonwebtoken::{errors::ErrorKind, Algorithm, DecodingKey, EncodingKey, Header};
+use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, errors::ErrorKind};
 use num_traits::FromPrimitive;
 use openssl::pkey::PKey;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 
 use crate::{
+    CONFIG,
     api::ApiResult,
     config::PathType,
     db::models::{
@@ -19,7 +20,7 @@ use crate::{
         OrganizationId, SendFileId, SendId, UserId,
     },
     error::Error,
-    sso, CONFIG,
+    sso,
 };
 
 const JWT_ALGORITHM: Algorithm = Algorithm::EdDSA;
@@ -503,8 +504,8 @@ use rocket::{
 };
 
 use crate::db::{
-    models::{Collection, Device, Membership, MembershipStatus, MembershipType, User, UserStampException},
     DbConn,
+    models::{Collection, Device, Membership, MembershipStatus, MembershipType, User, UserStampException},
 };
 
 pub struct Host {
@@ -703,10 +704,11 @@ impl<'r> FromRequest<'r> for OrgHeaders {
         let url_org_id: Option<OrganizationId> = {
             if let Some(Ok(org_id)) = request.param::<OrganizationId>(1) {
                 Some(org_id)
-            } else if let Some(Ok(org_id)) = request.query_value::<OrganizationId>("organizationId") {
-                Some(org_id)
             } else {
-                None
+                match request.query_value::<OrganizationId>("organizationId") {
+                    Some(Ok(org_id)) => Some(org_id),
+                    _ => None,
+                }
             }
         };
 

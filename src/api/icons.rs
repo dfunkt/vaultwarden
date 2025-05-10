@@ -6,22 +6,22 @@ use std::{
 };
 
 use bytes::{Bytes, BytesMut};
-use futures::{stream::StreamExt, TryFutureExt};
+use futures::{TryFutureExt, stream::StreamExt};
 use html5gum::{Emitter, HtmlString, Readable, StringReader, Tokenizer};
 use regex::Regex;
 use reqwest::{
-    header::{self, HeaderMap, HeaderValue},
     Client, Response,
+    header::{self, HeaderMap, HeaderValue},
 };
-use rocket::{http::ContentType, response::Redirect, Route};
-use svg_hush::{data_url_filter, Filter};
+use rocket::{Route, http::ContentType, response::Redirect};
+use svg_hush::{Filter, data_url_filter};
 
 use crate::{
+    CONFIG,
     config::PathType,
     error::Error,
-    http_client::{get_reqwest_client_builder, should_block_address, CustomHttpClientError},
+    http_client::{CustomHttpClientError, get_reqwest_client_builder, should_block_address},
     util::Cached,
-    CONFIG,
 };
 
 pub fn routes() -> Vec<Route> {

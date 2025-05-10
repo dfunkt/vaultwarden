@@ -5,8 +5,8 @@ use crate::{
     api::{EmptyResult, JsonResult, Notify, UpdateType},
     auth::Headers,
     db::{
-        models::{Folder, FolderId},
         DbConn,
+        models::{Folder, FolderId},
     },
 };
 

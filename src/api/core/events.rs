@@ -1,18 +1,18 @@
 use std::net::IpAddr;
 
 use chrono::NaiveDateTime;
-use rocket::{form::FromForm, serde::json::Json, Route};
+use rocket::{Route, form::FromForm, serde::json::Json};
 use serde_json::Value;
 
 use crate::{
+    CONFIG,
     api::{EmptyResult, JsonResult},
     auth::{AdminHeaders, Headers},
     db::{
-        models::{Cipher, CipherId, Event, Membership, MembershipId, OrganizationId, UserId},
         DbConn, DbPool,
+        models::{Cipher, CipherId, Event, Membership, MembershipId, OrganizationId, UserId},
     },
     util::parse_date,
-    CONFIG,
 };
 
 /// ###############################################################################################################
@@ -335,9 +335,12 @@ pub async fn event_cleanup_job(pool: DbPool) {
         return;
     }
 
-    if let Ok(conn) = pool.get().await {
-        Event::clean_events(&conn).await.ok();
-    } else {
-        error!("Failed to get DB connection while trying to cleanup the events table")
+    match pool.get().await {
+        Ok(conn) => {
+            Event::clean_events(&conn).await.ok();
+        }
+        _ => {
+            error!("Failed to get DB connection while trying to cleanup the events table")
+        }
     }
 }

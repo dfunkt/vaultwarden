@@ -1,7 +1,7 @@
 use super::{CollectionId, Membership, MembershipId, OrganizationId, User, UserId};
 use crate::api::EmptyResult;
-use crate::db::schema::{collections_groups, groups, groups_users, users_organizations};
 use crate::db::DbConn;
+use crate::db::schema::{collections_groups, groups, groups_users, users_organizations};
 use crate::error::MapResult;
 use chrono::{NaiveDateTime, Utc};
 use derive_more::{AsRef, Deref, Display, From};
