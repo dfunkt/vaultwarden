@@ -16,18 +16,18 @@
 # be changed to point to a malicious image.
 #
 # To verify the current digest for a given tag name:
-# - From https://hub.docker.com/r/vaultwarden/web-vault/tags,
+# - From https://github.com/dfunkt/bw_web_builds/tags,
 #   click the tag name to view the digest of the image it currently points to.
 # - From the command line:
 #     $ docker pull docker.io/vaultwarden/web-vault:v2026.1.1
 #     $ docker image inspect --format "{{.RepoDigests}}" docker.io/vaultwarden/web-vault:v2026.1.1
-#     [docker.io/vaultwarden/web-vault@sha256:062fcf0d5dc37247dae61b0ee1ba5d20f9296e290d7ad1f6114ea5888f5738a7]
+#     [ghcr.io/dfunkt/bw_web_builds@sha256:046f56183e2b01c6dc7c0b7673996060044697ae643f2adc16b28058628431b8]
 #
 # - Conversely, to get the tag name from the digest:
-#     $ docker image inspect --format "{{.RepoTags}}" docker.io/vaultwarden/web-vault@sha256:062fcf0d5dc37247dae61b0ee1ba5d20f9296e290d7ad1f6114ea5888f5738a7
-#     [docker.io/vaultwarden/web-vault:v2026.1.1]
+#     $ docker image inspect --format "{{.RepoTags}}" docker.io/vaultwarden/web-vault@sha256:046f56183e2b01c6dc7c0b7673996060044697ae643f2adc16b28058628431b8
+#     [ghcr.io/dfunkt/bw_web_builds:v2026.1.1]
 #
-FROM --platform=linux/amd64 docker.io/vaultwarden/web-vault@sha256:062fcf0d5dc37247dae61b0ee1ba5d20f9296e290d7ad1f6114ea5888f5738a7 AS vault
+FROM --platform=linux/amd64 ghcr.io/dfunkt/bw_web_builds@sha256:046f56183e2b01c6dc7c0b7673996060044697ae643f2adc16b28058628431b8 AS vault
 
 ########################## Cross Compile Docker Helper Scripts ##########################
 ## We use the linux/amd64 no matter which Build Platform, since these are all bash scripts
