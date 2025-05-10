@@ -6,12 +6,12 @@ use super::{
     Cipher, Device, EmergencyAccess, Favorite, Folder, Membership, MembershipType, TwoFactor, TwoFactorIncomplete,
 };
 use crate::{
+    CONFIG,
     api::EmptyResult,
     crypto,
     db::DbConn,
     error::MapResult,
     util::{format_date, get_uuid, retry},
-    CONFIG,
 };
 use macros::UuidFromParam;
 

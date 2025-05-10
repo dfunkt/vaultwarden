@@ -1,14 +1,14 @@
 use chrono::{NaiveDateTime, Utc};
 
 use crate::{
+    CONFIG,
     api::EmptyResult,
     auth::ClientIp,
     db::{
-        models::{DeviceId, UserId},
         DbConn,
+        models::{DeviceId, UserId},
     },
     error::MapResult,
-    CONFIG,
 };
 
 db_object! {

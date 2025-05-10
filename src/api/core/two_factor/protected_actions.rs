@@ -1,16 +1,17 @@
 use chrono::{DateTime, TimeDelta, Utc};
-use rocket::{serde::json::Json, Route};
+use rocket::{Route, serde::json::Json};
 
 use crate::{
+    CONFIG,
     api::EmptyResult,
     auth::Headers,
     crypto,
     db::{
-        models::{TwoFactor, TwoFactorType, UserId},
         DbConn,
+        models::{TwoFactor, TwoFactorType, UserId},
     },
     error::{Error, MapResult},
-    mail, CONFIG,
+    mail,
 };
 
 pub fn routes() -> Vec<Route> {
@@ -57,7 +58,9 @@ impl ProtectedActionData {
 #[post("/accounts/request-otp")]
 async fn request_otp(headers: Headers, mut conn: DbConn) -> EmptyResult {
     if !CONFIG.mail_enabled() {
-        err!("Email is disabled for this server. Either enable email or login using your master password instead of login via device.");
+        err!(
+            "Email is disabled for this server. Either enable email or login using your master password instead of login via device."
+        );
     }
 
     let user = headers.user;
@@ -91,7 +94,9 @@ struct ProtectedActionVerify {
 #[post("/accounts/verify-otp", data = "<data>")]
 async fn verify_otp(data: Json<ProtectedActionVerify>, headers: Headers, mut conn: DbConn) -> EmptyResult {
     if !CONFIG.mail_enabled() {
-        err!("Email is disabled for this server. Either enable email or login using your master password instead of login via device.");
+        err!(
+            "Email is disabled for this server. Either enable email or login using your master password instead of login via device."
+        );
     }
 
     let user = headers.user;

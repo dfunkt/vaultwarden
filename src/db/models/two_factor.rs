@@ -285,7 +285,7 @@ impl TwoFactor {
         }};
 
         use crate::api::core::two_factor::webauthn::U2FRegistration;
-        use crate::api::core::two_factor::webauthn::{get_webauthn_registrations, WebauthnRegistration};
+        use crate::api::core::two_factor::webauthn::{WebauthnRegistration, get_webauthn_registrations};
         use webauthn_rs::prelude::{COSEEC2Key, COSEKey, COSEKeyType, ECDSACurve};
         use webauthn_rs_proto::{COSEAlgorithm, UserVerificationPolicy};
 
