@@ -6,9 +6,9 @@ use diesel::{
 };
 
 use rocket::{
+    Request,
     http::Status,
     request::{FromRequest, Outcome},
-    Request,
 };
 
 use tokio::{
@@ -17,8 +17,8 @@ use tokio::{
 };
 
 use crate::{
-    error::{Error, MapResult},
     CONFIG,
+    error::{Error, MapResult},
 };
 
 #[cfg(sqlite)]

@@ -1,7 +1,7 @@
 use chrono::{NaiveDateTime, Utc};
 use serde_json::Value;
 
-use crate::{config::PathType, util::LowerCase, CONFIG};
+use crate::{CONFIG, config::PathType, util::LowerCase};
 
 use super::{OrganizationId, User, UserId};
 use id::SendId;

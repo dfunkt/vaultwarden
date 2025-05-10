@@ -5,29 +5,30 @@ use std::{env, sync::LazyLock};
 
 use rocket::serde::json::Json;
 use rocket::{
+    Catcher, Route,
     form::Form,
     http::{Cookie, CookieJar, MediaType, SameSite, Status},
     request::{FromRequest, Outcome, Request},
-    response::{content::RawHtml as Html, Redirect},
-    Catcher, Route,
+    response::{Redirect, content::RawHtml as Html},
 };
 
 use crate::{
+    CONFIG, VERSION,
     api::{
+        ApiResult, EmptyResult, JsonResult, Notify,
         core::{log_event, two_factor},
-        unregister_push_device, ApiResult, EmptyResult, JsonResult, Notify,
+        unregister_push_device,
     },
-    auth::{decode_admin, encode_jwt, generate_admin_claims, ClientIp, Secure},
+    auth::{ClientIp, Secure, decode_admin, encode_jwt, generate_admin_claims},
     config::ConfigBuilder,
-    db::{backup_database, get_sql_server_version, models::*, DbConn, DbConnType},
+    db::{DbConn, DbConnType, backup_database, get_sql_server_version, models::*},
     error::{Error, MapResult},
     http_client::make_http_request,
     mail,
     util::{
-        container_base_image, format_naive_datetime_local, get_display_size, get_web_vault_version,
-        is_running_in_container, NumberOrString,
+        NumberOrString, container_base_image, format_naive_datetime_local, get_display_size, get_web_vault_version,
+        is_running_in_container,
     },
-    CONFIG, VERSION,
 };
 
 pub fn routes() -> Vec<Route> {
@@ -556,7 +557,9 @@ async fn update_membership_type(data: Json<MembershipTypeData>, token: AdminToke
                 }
             }
             Err(OrgPolicyErr::SingleOrgEnforced) => {
-                err!("You cannot modify this user to this type because it is a member of an organization which forbids it");
+                err!(
+                    "You cannot modify this user to this type because it is a member of an organization which forbids it"
+                );
             }
         }
     }
@@ -715,13 +718,14 @@ async fn diagnostics(_token: AdminToken, ip_header: IpHeader, mut conn: DbConn) 
     let web_vault_version = get_web_vault_version();
 
     // Check if the running version is newer than the latest stable released version
-    let web_vault_pre_release = if let Ok(web_ver_match) = semver::VersionReq::parse(&format!(">{latest_web_build}")) {
-        web_ver_match.matches(
+    let web_vault_pre_release = match semver::VersionReq::parse(&format!(">{latest_web_build}")) {
+        Ok(web_ver_match) => web_ver_match.matches(
             &semver::Version::parse(&web_vault_version).unwrap_or_else(|_| semver::Version::parse("2025.1.1").unwrap()),
-        )
-    } else {
-        error!("Unable to parse latest_web_build: '{latest_web_build}'");
-        false
+        ),
+        _ => {
+            error!("Unable to parse latest_web_build: '{latest_web_build}'");
+            false
+        }
     };
 
     let diagnostics_json = json!({
