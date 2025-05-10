@@ -9,12 +9,12 @@ use rocket::serde::json::Json;
 use serde_json::Value;
 
 use crate::{
+    CONFIG,
     api::{ApiResult, EmptyResult, JsonResult, Notify, UpdateType},
     auth::{ClientIp, Headers, Host},
     config::PathType,
-    db::{models::*, DbConn, DbPool},
-    util::{save_temp_file, NumberOrString},
-    CONFIG,
+    db::{DbConn, DbPool, models::*},
+    util::{NumberOrString, save_temp_file},
 };
 
 const SEND_INACCESSIBLE_MSG: &str = "Send does not exist or is no longer available";

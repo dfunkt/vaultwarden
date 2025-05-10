@@ -38,9 +38,9 @@ macro_rules! make_error {
     };
 }
 
+use diesel::ConnectionError as DieselConErr;
 use diesel::r2d2::PoolError as R2d2Err;
 use diesel::result::Error as DieselErr;
-use diesel::ConnectionError as DieselConErr;
 use handlebars::RenderError as HbErr;
 use jsonwebtoken::errors::Error as JwtErr;
 use lettre::address::AddressError as AddrErr;

@@ -5,18 +5,18 @@ use std::{collections::HashMap, io::Cursor, path::Path};
 
 use num_traits::ToPrimitive;
 use rocket::{
+    Data, Orbit, Request, Response, Rocket,
     fairing::{Fairing, Info, Kind},
     http::{ContentType, Header, HeaderMap, Method, Status},
     response::{self, Responder},
-    Data, Orbit, Request, Response, Rocket,
 };
 
 use tokio::{
     runtime::Handle,
-    time::{sleep, Duration},
+    time::{Duration, sleep},
 };
 
-use crate::{config::PathType, CONFIG};
+use crate::{CONFIG, config::PathType};
 
 pub struct AppHeaders();
 

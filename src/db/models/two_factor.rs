@@ -159,7 +159,7 @@ impl TwoFactor {
         }};
 
         use crate::api::core::two_factor::webauthn::U2FRegistration;
-        use crate::api::core::two_factor::webauthn::{get_webauthn_registrations, WebauthnRegistration};
+        use crate::api::core::two_factor::webauthn::{WebauthnRegistration, get_webauthn_registrations};
         use webauthn_rs::proto::*;
 
         for mut u2f in u2f_factors {
