@@ -6,17 +6,17 @@ use rocket::serde::json::Json;
 use serde_json::Value;
 
 use crate::{
-    api::{
-        core::{accept_org_invite, log_user_event, two_factor::email},
-        master_password_policy, register_push_device, unregister_push_device, AnonymousNotify, ApiResult, EmptyResult,
-        JsonResult, Notify, PasswordOrOtpData, UpdateType,
-    },
-    auth::{decode_delete, decode_invite, decode_verify_email, ClientHeaders, Headers},
-    crypto,
-    db::{models::*, DbConn},
-    mail,
-    util::{format_date, NumberOrString},
     CONFIG,
+    api::{
+        AnonymousNotify, ApiResult, EmptyResult, JsonResult, Notify, PasswordOrOtpData, UpdateType,
+        core::{accept_org_invite, log_user_event, two_factor::email},
+        master_password_policy, register_push_device, unregister_push_device,
+    },
+    auth::{ClientHeaders, Headers, decode_delete, decode_invite, decode_verify_email},
+    crypto,
+    db::{DbConn, models::*},
+    mail,
+    util::{NumberOrString, format_date},
 };
 
 use rocket::{
@@ -627,7 +627,7 @@ struct UpdateResetPasswordData {
 }
 
 use super::ciphers::CipherData;
-use super::sends::{update_send_from_data, SendData};
+use super::sends::{SendData, update_send_from_data};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -1144,7 +1144,7 @@ async fn password_hint(data: Json<PasswordHintData>, mut conn: DbConn) -> EmptyR
                 // There is still a timing side channel here in that the code
                 // paths that send mail take noticeably longer than ones that
                 // don't. Add a randomized sleep to mitigate this somewhat.
-                use rand::{rngs::SmallRng, Rng, SeedableRng};
+                use rand::{Rng, SeedableRng, rngs::SmallRng};
                 let mut rng = SmallRng::from_os_rng();
                 let delta: i32 = 100;
                 let sleep_ms = (1_000 + rng.random_range(-delta..=delta)) as u64;
@@ -1637,9 +1637,12 @@ async fn get_auth_requests(headers: Headers, mut conn: DbConn) -> JsonResult {
 
 pub async fn purge_auth_requests(pool: DbPool) {
     debug!("Purging auth requests");
-    if let Ok(mut conn) = pool.get().await {
-        AuthRequest::purge_expired_auth_requests(&mut conn).await;
-    } else {
-        error!("Failed to get DB connection while purging trashed ciphers")
+    match pool.get().await {
+        Ok(mut conn) => {
+            AuthRequest::purge_expired_auth_requests(&mut conn).await;
+        }
+        _ => {
+            error!("Failed to get DB connection while purging trashed ciphers")
+        }
     }
 }

@@ -1,8 +1,8 @@
 use std::{net::IpAddr, num::NonZeroU32, sync::LazyLock, time::Duration};
 
-use governor::{clock::DefaultClock, state::keyed::DashMapStateStore, Quota, RateLimiter};
+use governor::{Quota, RateLimiter, clock::DefaultClock, state::keyed::DashMapStateStore};
 
-use crate::{Error, CONFIG};
+use crate::{CONFIG, Error};
 
 type Limiter<T = IpAddr> = RateLimiter<T, DashMapStateStore<T>, DefaultClock>;
 

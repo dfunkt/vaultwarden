@@ -6,7 +6,7 @@ use crate::http_client::CustomHttpClientError;
 use std::error::Error as StdError;
 
 macro_rules! make_error {
-    ( $( $name:ident ( $ty:ty ): $src_fn:expr, $usr_msg_fun:expr ),+ $(,)? ) => {
+    ( $( $name:ident ( $ty:ty ): $src_fn:expr_2021, $usr_msg_fun:expr_2021 ),+ $(,)? ) => {
         const BAD_REQUEST: u16 = 400;
 
         pub enum ErrorKind { $($name( $ty )),+ }
@@ -38,9 +38,9 @@ macro_rules! make_error {
     };
 }
 
+use diesel::ConnectionError as DieselConErr;
 use diesel::r2d2::PoolError as R2d2Err;
 use diesel::result::Error as DieselErr;
-use diesel::ConnectionError as DieselConErr;
 use handlebars::RenderError as HbErr;
 use jsonwebtoken::errors::Error as JwtErr;
 use lettre::address::AddressError as AddrErr;
@@ -255,23 +255,23 @@ impl Responder<'_, 'static> for Error {
 //
 #[macro_export]
 macro_rules! err {
-    ($kind:ident, $msg:expr) => {{
+    ($kind:ident, $msg:expr_2021) => {{
         error!("{}", $msg);
         return Err($crate::error::Error::new($msg, $msg).with_kind($crate::error::ErrorKind::$kind($crate::error::$kind {})));
     }};
-    ($msg:expr) => {{
+    ($msg:expr_2021) => {{
         error!("{}", $msg);
         return Err($crate::error::Error::new($msg, $msg));
     }};
-    ($msg:expr, ErrorEvent $err_event:tt) => {{
+    ($msg:expr_2021, ErrorEvent $err_event:tt) => {{
         error!("{}", $msg);
         return Err($crate::error::Error::new($msg, $msg).with_event($crate::error::ErrorEvent $err_event));
     }};
-    ($usr_msg:expr, $log_value:expr) => {{
+    ($usr_msg:expr_2021, $log_value:expr_2021) => {{
         error!("{}. {}", $usr_msg, $log_value);
         return Err($crate::error::Error::new($usr_msg, $log_value));
     }};
-    ($usr_msg:expr, $log_value:expr, ErrorEvent $err_event:tt) => {{
+    ($usr_msg:expr_2021, $log_value:expr_2021, ErrorEvent $err_event:tt) => {{
         error!("{}. {}", $usr_msg, $log_value);
         return Err($crate::error::Error::new($usr_msg, $log_value).with_event($crate::error::ErrorEvent $err_event));
     }};
@@ -279,27 +279,27 @@ macro_rules! err {
 
 #[macro_export]
 macro_rules! err_silent {
-    ($msg:expr) => {{
+    ($msg:expr_2021) => {{
         return Err($crate::error::Error::new($msg, $msg));
     }};
-    ($msg:expr, ErrorEvent $err_event:tt) => {{
+    ($msg:expr_2021, ErrorEvent $err_event:tt) => {{
         return Err($crate::error::Error::new($msg, $msg).with_event($crate::error::ErrorEvent $err_event));
     }};
-    ($usr_msg:expr, $log_value:expr) => {{
+    ($usr_msg:expr_2021, $log_value:expr_2021) => {{
         return Err($crate::error::Error::new($usr_msg, $log_value));
     }};
-    ($usr_msg:expr, $log_value:expr, ErrorEvent $err_event:tt) => {{
+    ($usr_msg:expr_2021, $log_value:expr_2021, ErrorEvent $err_event:tt) => {{
         return Err($crate::error::Error::new($usr_msg, $log_value).with_event($crate::error::ErrorEvent $err_event));
     }};
 }
 
 #[macro_export]
 macro_rules! err_code {
-    ($msg:expr, $err_code:expr) => {{
+    ($msg:expr_2021, $err_code:expr_2021) => {{
         error!("{}", $msg);
         return Err($crate::error::Error::new($msg, $msg).with_code($err_code));
     }};
-    ($usr_msg:expr, $log_value:expr, $err_code:expr) => {{
+    ($usr_msg:expr_2021, $log_value:expr_2021, $err_code:expr_2021) => {{
         error!("{}. {}", $usr_msg, $log_value);
         return Err($crate::error::Error::new($usr_msg, $log_value).with_code($err_code));
     }};
@@ -307,11 +307,11 @@ macro_rules! err_code {
 
 #[macro_export]
 macro_rules! err_discard {
-    ($msg:expr, $data:expr) => {{
+    ($msg:expr_2021, $data:expr_2021) => {{
         std::io::copy(&mut $data.open(), &mut std::io::sink()).ok();
         return Err($crate::error::Error::new($msg, $msg));
     }};
-    ($usr_msg:expr, $log_value:expr, $data:expr) => {{
+    ($usr_msg:expr_2021, $log_value:expr_2021, $data:expr_2021) => {{
         std::io::copy(&mut $data.open(), &mut std::io::sink()).ok();
         return Err($crate::error::Error::new($usr_msg, $log_value));
     }};
@@ -319,21 +319,21 @@ macro_rules! err_discard {
 
 #[macro_export]
 macro_rules! err_json {
-    ($expr:expr, $log_value:expr) => {{
+    ($expr:expr_2021, $log_value:expr_2021) => {{
         return Err(($log_value, $expr).into());
     }};
-    ($expr:expr, $log_value:expr, $err_event:expr, ErrorEvent) => {{
+    ($expr:expr_2021, $log_value:expr_2021, $err_event:expr_2021, ErrorEvent) => {{
         return Err(($log_value, $expr).into().with_event($err_event));
     }};
 }
 
 #[macro_export]
 macro_rules! err_handler {
-    ($expr:expr) => {{
+    ($expr:expr_2021) => {{
         error!(target: "auth", "Unauthorized Error: {}", $expr);
         return ::rocket::request::Outcome::Error((rocket::http::Status::Unauthorized, $expr));
     }};
-    ($usr_msg:expr, $log_value:expr) => {{
+    ($usr_msg:expr_2021, $log_value:expr_2021) => {{
         error!(target: "auth", "Unauthorized Error: {}. {}", $usr_msg, $log_value);
         return ::rocket::request::Outcome::Error((rocket::http::Status::Unauthorized, $usr_msg));
     }};
