@@ -5,20 +5,20 @@ use num_traits::ToPrimitive;
 use rocket::fs::TempFile;
 use rocket::serde::json::Json;
 use rocket::{
-    form::{Form, FromForm},
     Route,
+    form::{Form, FromForm},
 };
 use serde_json::Value;
 
 use crate::auth::ClientVersion;
-use crate::util::{save_temp_file, NumberOrString};
+use crate::util::{NumberOrString, save_temp_file};
 use crate::{
-    api::{self, core::log_event, EmptyResult, JsonResult, Notify, PasswordOrOtpData, UpdateType},
+    CONFIG,
+    api::{self, EmptyResult, JsonResult, Notify, PasswordOrOtpData, UpdateType, core::log_event},
     auth::Headers,
     config::PathType,
     crypto,
-    db::{models::*, DbConn, DbPool},
-    CONFIG,
+    db::{DbConn, DbPool, models::*},
 };
 
 use super::folders::FolderData;

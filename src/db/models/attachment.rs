@@ -5,7 +5,7 @@ use derive_more::{AsRef, Deref, Display};
 use serde_json::Value;
 
 use super::{CipherId, OrganizationId, UserId};
-use crate::{config::PathType, CONFIG};
+use crate::{CONFIG, config::PathType};
 use macros::IdFromParam;
 
 db_object! {
