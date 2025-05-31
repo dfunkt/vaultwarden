@@ -53,7 +53,9 @@ static PUBLIC_ED25519_KEY: OnceLock<DecodingKey> = OnceLock::new();
 pub async fn initialize_keys() -> Result<(), Error> {
     use std::io::Error;
 
-    let ed25519_key_filename = std::path::PathBuf::from(CONFIG.private_ed25519_key())
+    let key_path = CONFIG.private_ed25519_key();
+
+    let ed25519_key_filename = std::path::PathBuf::from(&key_path)
         .file_name()
         .ok_or_else(|| Error::other("Private Ed25519 key path missing filename"))?
         .to_str()
@@ -74,13 +76,13 @@ pub async fn initialize_keys() -> Result<(), Error> {
         let ed25519_key = PKey::generate_ed25519()?;
         let priv_key_buffer = ed25519_key.private_key_to_pem_pkcs8()?;
         operator.write(&ed25519_key_filename, priv_key_buffer.clone()).await?;
-        info!("Private key '{}' created correctly", CONFIG.private_ed25519_key());
+        info!("Private key '{key_path}' created correctly");
         (ed25519_key, priv_key_buffer)
     };
     let pub_key_buffer = priv_key.public_key_to_pem()?;
 
     let enc = EncodingKey::from_ed_pem(&priv_key_buffer)?;
-    let dec: DecodingKey = DecodingKey::from_ed_pem(&pub_key_buffer)?;
+    let dec = DecodingKey::from_ed_pem(&pub_key_buffer)?;
     if PRIVATE_ED25519_KEY.set(enc).is_err() {
         err!("PRIVATE_ED25519_KEY must only be initialized once")
     }
