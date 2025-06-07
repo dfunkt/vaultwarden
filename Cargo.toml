@@ -123,7 +123,7 @@ webauthn-rs = "0.3.2"
 url = "2.5.4"
 
 # Email libraries
-lettre = { version = "0.11.16", features = ["smtp-transport", "sendmail-transport", "builder", "serde", "tokio1-native-tls", "hostname", "tracing", "tokio1"], default-features = false }
+lettre = { version = "0.11.17", features = ["smtp-transport", "sendmail-transport", "builder", "serde", "tokio1-native-tls", "hostname", "tracing", "tokio1"], default-features = false }
 percent-encoding = "2.3.1" # URL encoding library used for URL's in the emails
 email_address = "0.2.9"
 
@@ -131,7 +131,7 @@ email_address = "0.2.9"
 handlebars = { version = "6.3.2", features = ["dir_source"] }
 
 # HTTP client (Used for favicons, version check, DUO and HIBP API)
-reqwest = { version = "0.12.18", features = ["native-tls-alpn", "stream", "json", "gzip", "brotli", "socks", "cookies"] }
+reqwest = { version = "0.12.20", features = ["native-tls-alpn", "stream", "json", "gzip", "brotli", "socks", "cookies"] }
 hickory-resolver = "0.25.2"
 
 # Favicon extraction libraries
@@ -164,7 +164,7 @@ semver = "1.0.26"
 # Mainly used for the musl builds, since the default musl malloc is very slow
 mimalloc = { version = "0.1.46", features = ["secure"], default-features = false, optional = true }
 
-which = "7.0.3"
+which = "8.0.0"
 
 # Argon2 library with support for the PHC format
 argon2 = "0.5.3"
