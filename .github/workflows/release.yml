@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - test
+      - test-main
 
     tags:
       # https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
@@ -108,7 +109,7 @@ jobs:
             if [[ "${REF_NAME}" == "main" ]]; then
               echo "BASE_TAGS=latest" | tee -a "${GITHUB_ENV}"
             else
-              echo "BASE_TAGS=testing" | tee -a "${GITHUB_ENV}"
+              echo "BASE_TAGS=testing-main" | tee -a "${GITHUB_ENV}"
             fi
           fi
 
