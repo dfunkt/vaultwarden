@@ -387,3 +387,20 @@ jobs:
           subject-name: ${{ vars.QUAY_REPO }}
           subject-digest: ${{ env.DIGEST_SHA }}
           push-to-registry: true
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    needs: merge-manifests
+
+    env:
+      HAVE_WEBHOOK_ENABLED: ${{ secrets.WEBHOOK_URL != '' }}
+
+    steps:
+      - name: Invoke deployment hook
+        uses: distributhor/workflow-webhook@2381f0e9c7b6bf061fb1405bd0804b8706116369 # v3.0.8
+        if: ${{ env.HAVE_WEBHOOK_ENABLED == 'true' }}
+        with:
+          webhook_url: ${{ secrets.WEBHOOK_URL }}
+          webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
