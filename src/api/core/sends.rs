@@ -456,16 +456,16 @@ async fn post_access(
         err_code!(SEND_INACCESSIBLE_MSG, 404)
     };
 
-    if let Some(max_access_count) = send.max_access_count {
-        if send.access_count >= max_access_count {
-            err_code!(SEND_INACCESSIBLE_MSG, 404);
-        }
+    if let Some(max_access_count) = send.max_access_count
+        && send.access_count >= max_access_count
+    {
+        err_code!(SEND_INACCESSIBLE_MSG, 404);
     }
 
-    if let Some(expiration) = send.expiration_date {
-        if Utc::now().naive_utc() >= expiration {
-            err_code!(SEND_INACCESSIBLE_MSG, 404)
-        }
+    if let Some(expiration) = send.expiration_date
+        && Utc::now().naive_utc() >= expiration
+    {
+        err_code!(SEND_INACCESSIBLE_MSG, 404)
     }
 
     if Utc::now().naive_utc() >= send.deletion_date {
@@ -516,16 +516,16 @@ async fn post_access_file(
         err_code!(SEND_INACCESSIBLE_MSG, 404)
     };
 
-    if let Some(max_access_count) = send.max_access_count {
-        if send.access_count >= max_access_count {
-            err_code!(SEND_INACCESSIBLE_MSG, 404)
-        }
+    if let Some(max_access_count) = send.max_access_count
+        && send.access_count >= max_access_count
+    {
+        err_code!(SEND_INACCESSIBLE_MSG, 404)
     }
 
-    if let Some(expiration) = send.expiration_date {
-        if Utc::now().naive_utc() >= expiration {
-            err_code!(SEND_INACCESSIBLE_MSG, 404)
-        }
+    if let Some(expiration) = send.expiration_date
+        && Utc::now().naive_utc() >= expiration
+    {
+        err_code!(SEND_INACCESSIBLE_MSG, 404)
     }
 
     if Utc::now().naive_utc() >= send.deletion_date {
@@ -579,10 +579,10 @@ async fn download_url(host: &Host, send_id: &SendId, file_id: &SendFileId) -> Re
 
 #[get("/sends/<send_id>/<file_id>?<t>")]
 async fn download_send(send_id: SendId, file_id: SendFileId, t: &str) -> Option<NamedFile> {
-    if let Ok(claims) = crate::auth::decode_send(t) {
-        if claims.sub == format!("{send_id}/{file_id}") {
-            return NamedFile::open(Path::new(&CONFIG.sends_folder()).join(send_id).join(file_id)).await.ok();
-        }
+    if let Ok(claims) = crate::auth::decode_send(t)
+        && claims.sub == format!("{send_id}/{file_id}")
+    {
+        return NamedFile::open(Path::new(&CONFIG.sends_folder()).join(send_id).join(file_id)).await.ok();
     }
     None
 }

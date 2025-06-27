@@ -377,16 +377,16 @@ pub async fn update_cipher_from_data(
 
     // Check that the client isn't updating an existing cipher with stale data.
     // And only perform this check when not importing ciphers, else the date/time check will fail.
-    if ut != UpdateType::None {
-        if let Some(dt) = data.last_known_revision_date {
-            match NaiveDateTime::parse_from_str(&dt, "%+") {
-                // ISO 8601 format
-                Err(err) => warn!("Error parsing LastKnownRevisionDate '{dt}': {err}"),
-                Ok(dt) if cipher.updated_at.signed_duration_since(dt).num_seconds() > 1 => {
-                    err!("The client copy of this cipher is out of date. Resync the client and try again.")
-                }
-                Ok(_) => (),
+    if ut != UpdateType::None
+        && let Some(dt) = data.last_known_revision_date
+    {
+        match NaiveDateTime::parse_from_str(&dt, "%+") {
+            // ISO 8601 format
+            Err(err) => warn!("Error parsing LastKnownRevisionDate '{dt}': {err}"),
+            Ok(dt) if cipher.updated_at.signed_duration_since(dt).num_seconds() > 1 => {
+                err!("The client copy of this cipher is out of date. Resync the client and try again.")
             }
+            Ok(_) => (),
         }
     }
 
@@ -428,10 +428,10 @@ pub async fn update_cipher_from_data(
         cipher.user_uuid = Some(headers.user.uuid.clone());
     }
 
-    if let Some(ref folder_id) = data.folder_id {
-        if Folder::find_by_uuid_and_user(folder_id, &headers.user.uuid, conn).await.is_none() {
-            err!("Invalid folder", "Folder does not exist or belongs to another user");
-        }
+    if let Some(ref folder_id) = data.folder_id
+        && Folder::find_by_uuid_and_user(folder_id, &headers.user.uuid, conn).await.is_none()
+    {
+        err!("Invalid folder", "Folder does not exist or belongs to another user");
     }
 
     // Modify attachments name and keys when rotating
@@ -703,10 +703,10 @@ async fn put_cipher_partial(
         err!("Cipher doesn't exist")
     };
 
-    if let Some(ref folder_id) = data.folder_id {
-        if Folder::find_by_uuid_and_user(folder_id, &headers.user.uuid, &mut conn).await.is_none() {
-            err!("Invalid folder", "Folder does not exist or belongs to another user");
-        }
+    if let Some(ref folder_id) = data.folder_id
+        && Folder::find_by_uuid_and_user(folder_id, &headers.user.uuid, &mut conn).await.is_none()
+    {
+        err!("Invalid folder", "Folder does not exist or belongs to another user");
     }
 
     // Move cipher
@@ -1223,10 +1223,10 @@ async fn save_attachment(
         err!("Cipher is neither owned by a user nor an organization");
     };
 
-    if let Some(size_limit) = size_limit {
-        if size > size_limit {
-            err!("Attachment storage limit exceeded with this file");
-        }
+    if let Some(size_limit) = size_limit
+        && size > size_limit
+    {
+        err!("Attachment storage limit exceeded with this file");
     }
 
     let file_id = match &attachment {
@@ -1580,10 +1580,10 @@ async fn move_cipher_selected(
     let data = data.into_inner();
     let user_id = &headers.user.uuid;
 
-    if let Some(ref folder_id) = data.folder_id {
-        if Folder::find_by_uuid_and_user(folder_id, user_id, &mut conn).await.is_none() {
-            err!("Invalid folder", "Folder does not exist or belongs to another user");
-        }
+    if let Some(ref folder_id) = data.folder_id
+        && Folder::find_by_uuid_and_user(folder_id, user_id, &mut conn).await.is_none()
+    {
+        err!("Invalid folder", "Folder does not exist or belongs to another user");
     }
 
     let cipher_count = data.ids.len();
