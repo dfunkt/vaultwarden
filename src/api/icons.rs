@@ -219,10 +219,10 @@ async fn get_cached_icon(path: &str) -> Option<Vec<u8>> {
     }
 
     // Try to read the cached icon, and return it if it exists
-    if let Ok(operator) = CONFIG.opendal_operator_for_path_type(PathType::IconCache) {
-        if let Ok(buf) = operator.read(path).await {
-            return Some(buf.to_vec());
-        }
+    if let Ok(operator) = CONFIG.opendal_operator_for_path_type(PathType::IconCache)
+        && let Ok(buf) = operator.read(path).await
+    {
+        return Some(buf.to_vec());
     }
 
     None
@@ -316,16 +316,16 @@ fn get_favicons_node(dom: Tokenizer<StringReader<'_>, FaviconEmitter>, icons: &m
     }
 
     for icon_tag in icon_tags {
-        if let Some(icon_href) = icon_tag.attributes.get(ATTR_HREF) {
-            if let Ok(full_href) = base_url.join(std::str::from_utf8(icon_href).unwrap_or_default()) {
-                let sizes = if let Some(v) = icon_tag.attributes.get(ATTR_SIZES) {
-                    std::str::from_utf8(v).unwrap_or_default()
-                } else {
-                    ""
-                };
-                let priority = get_icon_priority(full_href.as_str(), sizes);
-                icons.push(Icon::new(priority, full_href.to_string()));
-            }
+        if let Some(icon_href) = icon_tag.attributes.get(ATTR_HREF)
+            && let Ok(full_href) = base_url.join(std::str::from_utf8(icon_href).unwrap_or_default())
+        {
+            let sizes = if let Some(v) = icon_tag.attributes.get(ATTR_SIZES) {
+                std::str::from_utf8(v).unwrap_or_default()
+            } else {
+                ""
+            };
+            let priority = get_icon_priority(full_href.as_str(), sizes);
+            icons.push(Icon::new(priority, full_href.to_string()));
         };
     }
 }
@@ -612,10 +612,10 @@ async fn save_icon(path: &str, icon: Vec<u8>) {
 fn get_icon_type(bytes: &[u8]) -> Option<&'static str> {
     fn check_svg_after_xml_declaration(bytes: &[u8]) -> Option<&'static str> {
         // Look for SVG tag within the first 1KB
-        if let Ok(content) = std::str::from_utf8(&bytes[..bytes.len().min(1024)]) {
-            if content.contains("<svg") || content.contains("<SVG") {
-                return Some("svg+xml");
-            }
+        if let Ok(content) = std::str::from_utf8(&bytes[..bytes.len().min(1024)])
+            && (content.contains("<svg") || content.contains("<SVG"))
+        {
+            return Some("svg+xml");
         }
         None
     }
