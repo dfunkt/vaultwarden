@@ -19,11 +19,11 @@ build_stage_image:
     image: "build_${TARGETARCH}${TARGETVARIANT}"
     platform: "linux/amd64" # The Alpine build images only have linux/amd64 images
     arch_image:
-      amd64: "ghcr.io/blackdex/rust-musl:x86_64-musl-stable-{{rust_version}}"
-      amd64v3: "ghcr.io/blackdex/rust-musl:x86_64-musl-stable-{{rust_version}}"
-      arm64: "ghcr.io/blackdex/rust-musl:aarch64-musl-stable-{{rust_version}}"
-      armv7: "ghcr.io/blackdex/rust-musl:armv7-musleabihf-stable-{{rust_version}}"
-      armv6: "ghcr.io/blackdex/rust-musl:arm-musleabi-stable-{{rust_version}}"
+      amd64: "ghcr.io/dfunkt/rust-musl:x86_64-musl-stable-{{rust_version}}"
+      amd64v3: "ghcr.io/dfunkt/rust-musl:x86_64-musl-stable-{{rust_version}}"
+      arm64: "ghcr.io/dfunkt/rust-musl:aarch64-musl-stable-{{rust_version}}"
+      armv7: "ghcr.io/dfunkt/rust-musl:armv7-musleabihf-stable-{{rust_version}}"
+      armv6: "ghcr.io/dfunkt/rust-musl:arm-musleabi-stable-{{rust_version}}"
 # The final image which will be used to distribute the container images
 runtime_stage_image:
   debian: "docker.io/library/debian:{{debian_version}}-slim"
