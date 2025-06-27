@@ -1970,18 +1970,18 @@ async fn post_bulk_collections(data: Json<BulkCollectionsData>, headers: Headers
     for cipher_id in data.cipher_ids.iter() {
         // Only act on existing cipher uuid's
         // Do not abort the operation just ignore it, it could be a cipher was just deleted for example
-        if let Some(cipher) = Cipher::find_by_uuid_and_org(cipher_id, &data.organization_id, &mut conn).await {
-            if cipher.is_write_accessible_to_user(&headers.user.uuid, &mut conn).await {
-                // When selecting a specific collection from the left filter list, and use the bulk option, you can remove an item from that collection
-                // In these cases the client will call this endpoint twice, once for adding the new collections and a second for deleting.
-                if data.remove_collections {
-                    for collection in &data.collection_ids {
-                        CollectionCipher::delete(&cipher.uuid, collection, &mut conn).await?;
-                    }
-                } else {
-                    for collection in &data.collection_ids {
-                        CollectionCipher::save(&cipher.uuid, collection, &mut conn).await?;
-                    }
+        if let Some(cipher) = Cipher::find_by_uuid_and_org(cipher_id, &data.organization_id, &mut conn).await
+            && cipher.is_write_accessible_to_user(&headers.user.uuid, &mut conn).await
+        {
+            // When selecting a specific collection from the left filter list, and use the bulk option, you can remove an item from that collection
+            // In these cases the client will call this endpoint twice, once for adding the new collections and a second for deleting.
+            if data.remove_collections {
+                for collection in &data.collection_ids {
+                    CollectionCipher::delete(&cipher.uuid, collection, &mut conn).await?;
+                }
+            } else {
+                for collection in &data.collection_ids {
+                    CollectionCipher::save(&cipher.uuid, collection, &mut conn).await?;
                 }
             }
         };
@@ -2302,42 +2302,62 @@ async fn import(org_id: OrganizationId, data: Json<OrgImportData>, headers: Head
             }
 
         // If user is not part of the organization, but it exists
-        } else if Membership::find_by_email_and_org(&user_data.email, &org_id, &mut conn).await.is_none() {
-            if let Some(user) = User::find_by_mail(&user_data.email, &mut conn).await {
-                let member_status = if CONFIG.mail_enabled() {
-                    MembershipStatus::Invited as i32
-                } else {
-                    MembershipStatus::Accepted as i32 // Automatically mark user as accepted if no email invites
+        } else if Membership::find_by_email_and_org(&user_data.email, &org_id, &mut conn).await.is_none()
+            && let Some(user) = User::find_by_mail(&user_data.email, &mut conn).await
+        {
+            let member_status = if CONFIG.mail_enabled() {
+                MembershipStatus::Invited as i32
+            } else {
+                MembershipStatus::Accepted as i32 // Automatically mark user as accepted if no email invites
+            };
+
+            let mut new_member = Membership::new(user.uuid.clone(), org_id.clone());
+            new_member.access_all = false;
+            new_member.atype = MembershipType::User as i32;
+            new_member.status = member_status;
+
+            if CONFIG.mail_enabled() {
+                let org_name = match Organization::find_by_uuid(&org_id, &mut conn).await {
+                    Some(org) => org.name,
+                    None => err!("Error looking up organization"),
                 };
 
-                let mut new_member = Membership::new(user.uuid.clone(), org_id.clone());
-                new_member.access_all = false;
-                new_member.atype = MembershipType::User as i32;
-                new_member.status = member_status;
+                mail::send_invite(
+                    &user,
+                    org_id.clone(),
+                    new_member.uuid.clone(),
+                    &org_name,
+                    Some(headers.user.email.clone()),
+                )
+                .await?;
+            }
 
-                if CONFIG.mail_enabled() {
-                    let org_name = match Organization::find_by_uuid(&org_id, &mut conn).await {
-                        Some(org) => org.name,
-                        None => err!("Error looking up organization"),
-                    };
+            // Save the member after sending an email
+            // If sending fails the member will not be saved to the database, and will not result in the admin needing to reinvite the users manually
+            new_member.save(&mut conn).await?;
 
-                    mail::send_invite(
-                        &user,
-                        org_id.clone(),
-                        new_member.uuid.clone(),
-                        &org_name,
-                        Some(headers.user.email.clone()),
-                    )
-                    .await?;
-                }
+            log_event(
+                EventType::OrganizationUserInvited as i32,
+                &new_member.uuid,
+                &org_id,
+                &headers.user.uuid,
+                headers.device.atype,
+                &headers.ip.ip,
+                &mut conn,
+            )
+            .await;
+        }
+    }
 
-                // Save the member after sending an email
-                // If sending fails the member will not be saved to the database, and will not result in the admin needing to reinvite the users manually
-                new_member.save(&mut conn).await?;
-
+    // If this flag is enabled, any user that isn't provided in the Users list will be removed (by default they will be kept unless they have Deleted == true)
+    if data.overwrite_existing {
+        for member in Membership::find_by_org_and_type(&org_id, MembershipType::User, &mut conn).await {
+            if let Some(user_email) = User::find_by_uuid(&member.user_uuid, &mut conn).await.map(|u| u.email)
+                && !data.users.iter().any(|u| u.email == user_email)
+            {
                 log_event(
-                    EventType::OrganizationUserInvited as i32,
-                    &new_member.uuid,
+                    EventType::OrganizationUserRemoved as i32,
+                    &member.uuid,
                     &org_id,
                     &headers.user.uuid,
                     headers.device.atype,
@@ -2345,28 +2365,8 @@ async fn import(org_id: OrganizationId, data: Json<OrgImportData>, headers: Head
                     &mut conn,
                 )
                 .await;
-            }
-        }
-    }
 
-    // If this flag is enabled, any user that isn't provided in the Users list will be removed (by default they will be kept unless they have Deleted == true)
-    if data.overwrite_existing {
-        for member in Membership::find_by_org_and_type(&org_id, MembershipType::User, &mut conn).await {
-            if let Some(user_email) = User::find_by_uuid(&member.user_uuid, &mut conn).await.map(|u| u.email) {
-                if !data.users.iter().any(|u| u.email == user_email) {
-                    log_event(
-                        EventType::OrganizationUserRemoved as i32,
-                        &member.uuid,
-                        &org_id,
-                        &headers.user.uuid,
-                        headers.device.atype,
-                        &headers.ip.ip,
-                        &mut conn,
-                    )
-                    .await;
-
-                    member.delete(&mut conn).await?;
-                }
+                member.delete(&mut conn).await?;
             }
         }
     }
