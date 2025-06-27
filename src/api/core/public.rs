@@ -171,19 +171,18 @@ async fn ldap_import(data: Json<OrgImportData>, token: PublicToken, mut conn: Db
         // Generate a HashSet to quickly verify if a member is listed or not.
         let sync_members: HashSet<String> = data.members.into_iter().map(|m| m.external_id).collect();
         for member in Membership::find_by_org(&org_id, &mut conn).await {
-            if let Some(ref user_external_id) = member.external_id {
-                if !sync_members.contains(user_external_id) {
-                    if member.atype == MembershipType::Owner && member.status == MembershipStatus::Confirmed as i32 {
-                        // Removing owner, check that there is at least one other confirmed owner
-                        if Membership::count_confirmed_by_org_and_type(&org_id, MembershipType::Owner, &mut conn).await
-                            <= 1
-                        {
-                            warn!("Can't delete the last owner");
-                            continue;
-                        }
+            if let Some(ref user_external_id) = member.external_id
+                && !sync_members.contains(user_external_id)
+            {
+                if member.atype == MembershipType::Owner && member.status == MembershipStatus::Confirmed as i32 {
+                    // Removing owner, check that there is at least one other confirmed owner
+                    if Membership::count_confirmed_by_org_and_type(&org_id, MembershipType::Owner, &mut conn).await <= 1
+                    {
+                        warn!("Can't delete the last owner");
+                        continue;
                     }
-                    member.delete(&mut conn).await?;
                 }
+                member.delete(&mut conn).await?;
             }
         }
     }
