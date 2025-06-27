@@ -104,16 +104,16 @@ impl Send {
     }
 
     pub async fn creator_identifier(&self, conn: &mut DbConn) -> Option<String> {
-        if let Some(hide_email) = self.hide_email {
-            if hide_email {
-                return None;
-            }
+        if let Some(hide_email) = self.hide_email
+            && hide_email
+        {
+            return None;
         }
 
-        if let Some(user_uuid) = &self.user_uuid {
-            if let Some(user) = User::find_by_uuid(user_uuid, conn).await {
-                return Some(user.email);
-            }
+        if let Some(user_uuid) = &self.user_uuid
+            && let Some(user) = User::find_by_uuid(user_uuid, conn).await
+        {
+            return Some(user.email);
         }
 
         None
@@ -321,13 +321,12 @@ impl Send {
 
         let mut total: i64 = 0;
         for send in sends {
-            if send.atype == SendType::File as i32 {
-                if let Ok(size) =
+            if send.atype == SendType::File as i32
+                && let Ok(size) =
                     serde_json::from_str::<FileData>(&send.data).map_err(Into::into).and_then(|d| d.size.into_i64())
-                {
-                    total = total.checked_add(size)?;
-                };
-            }
+            {
+                total = total.checked_add(size)?;
+            };
         }
 
         Some(total)
