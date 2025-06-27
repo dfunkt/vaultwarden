@@ -801,10 +801,10 @@ impl Membership {
     }
 
     pub async fn find_by_email_and_org(email: &str, org_uuid: &OrganizationId, conn: &DbConn) -> Option<Membership> {
-        if let Some(user) = User::find_by_mail(email, conn).await {
-            if let Some(member) = Membership::find_by_user_and_org(&user.uuid, org_uuid, conn).await {
-                return Some(member);
-            }
+        if let Some(user) = User::find_by_mail(email, conn).await
+            && let Some(member) = Membership::find_by_user_and_org(&user.uuid, org_uuid, conn).await
+        {
+            return Some(member);
         }
 
         None

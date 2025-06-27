@@ -924,13 +924,10 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
         let url = &cfg.database_url;
         if DbConnType::from_url(url)? == DbConnType::Sqlite && url.contains('/') {
             let path = std::path::Path::new(&url);
-            if let Some(parent) = path.parent() {
-                if !parent.is_dir() {
-                    err!(format!(
-                        "SQLite database directory `{}` does not exist or is not a directory",
-                        parent.display()
-                    ));
-                }
+            if let Some(parent) = path.parent()
+                && !parent.is_dir()
+            {
+                err!(format!("SQLite database directory `{}` does not exist or is not a directory", parent.display()));
             }
         }
     }
@@ -952,10 +949,10 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
         err!(format!("`DATABASE_MIN_CONNS` must be smaller than or equal to `DATABASE_MAX_CONNS`.",));
     }
 
-    if let Some(log_file) = &cfg.log_file {
-        if std::fs::OpenOptions::new().append(true).create(true).open(log_file).is_err() {
-            err!("Unable to write to log file", log_file);
-        }
+    if let Some(log_file) = &cfg.log_file
+        && std::fs::OpenOptions::new().append(true).create(true).open(log_file).is_err()
+    {
+        err!("Unable to write to log file", log_file);
     }
 
     let dom = cfg.domain.to_lowercase();
@@ -986,11 +983,12 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
         err!("`ORG_CREATION_USERS` contains invalid email addresses");
     }
 
-    if let Some(ref token) = cfg.admin_token {
-        if token.trim().is_empty() && !cfg.disable_admin_token {
-            println!("[WARNING] `ADMIN_TOKEN` is enabled but has an empty value, so the admin page will be disabled.");
-            println!("[WARNING] To enable the admin page without a token, use `DISABLE_ADMIN_TOKEN`.");
-        }
+    if let Some(ref token) = cfg.admin_token
+        && token.trim().is_empty()
+        && !cfg.disable_admin_token
+    {
+        println!("[WARNING] `ADMIN_TOKEN` is enabled but has an empty value, so the admin page will be disabled.");
+        println!("[WARNING] To enable the admin page without a token, use `DISABLE_ADMIN_TOKEN`.");
     }
 
     if cfg.push_enabled && (cfg.push_installation_id == String::new() || cfg.push_installation_key == String::new()) {
@@ -1056,22 +1054,22 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
 
     const MAX_FILESIZE_KB: i64 = i64::MAX >> 10;
 
-    if let Some(limit) = cfg.user_attachment_limit {
-        if !(0i64..=MAX_FILESIZE_KB).contains(&limit) {
-            err!("`USER_ATTACHMENT_LIMIT` is out of bounds");
-        }
+    if let Some(limit) = cfg.user_attachment_limit
+        && !(0i64..=MAX_FILESIZE_KB).contains(&limit)
+    {
+        err!("`USER_ATTACHMENT_LIMIT` is out of bounds");
     }
 
-    if let Some(limit) = cfg.org_attachment_limit {
-        if !(0i64..=MAX_FILESIZE_KB).contains(&limit) {
-            err!("`ORG_ATTACHMENT_LIMIT` is out of bounds");
-        }
+    if let Some(limit) = cfg.org_attachment_limit
+        && !(0i64..=MAX_FILESIZE_KB).contains(&limit)
+    {
+        err!("`ORG_ATTACHMENT_LIMIT` is out of bounds");
     }
 
-    if let Some(limit) = cfg.user_send_limit {
-        if !(0i64..=MAX_FILESIZE_KB).contains(&limit) {
-            err!("`USER_SEND_LIMIT` is out of bounds");
-        }
+    if let Some(limit) = cfg.user_send_limit
+        && !(0i64..=MAX_FILESIZE_KB).contains(&limit)
+    {
+        err!("`USER_SEND_LIMIT` is out of bounds");
     }
 
     if cfg._enable_duo
@@ -1692,10 +1690,10 @@ impl Config {
     }
 
     pub fn shutdown(&self) {
-        if let Ok(mut c) = self.inner.write() {
-            if let Some(handle) = c.rocket_shutdown_handle.take() {
-                handle.notify();
-            }
+        if let Ok(mut c) = self.inner.write()
+            && let Some(handle) = c.rocket_shutdown_handle.take()
+        {
+            handle.notify();
         }
     }
 

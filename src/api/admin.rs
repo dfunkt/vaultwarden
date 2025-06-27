@@ -685,18 +685,16 @@ async fn get_release_info(has_http_access: bool) -> (String, String, String) {
 }
 
 async fn get_ntp_time(has_http_access: bool) -> String {
-    if has_http_access {
-        if let Ok(cf_trace) = get_text_api("https://cloudflare.com/cdn-cgi/trace").await {
-            for line in cf_trace.lines() {
-                if let Some((key, value)) = line.split_once('=') {
-                    if key == "ts" {
-                        let ts = value.split_once('.').map_or(value, |(s, _)| s);
-                        if let Ok(dt) = chrono::DateTime::parse_from_str(ts, "%s") {
-                            return dt.format("%Y-%m-%d %H:%M:%S UTC").to_string();
-                        }
-                        break;
-                    }
+    if has_http_access && let Ok(cf_trace) = get_text_api("https://cloudflare.com/cdn-cgi/trace").await {
+        for line in cf_trace.lines() {
+            if let Some((key, value)) = line.split_once('=')
+                && key == "ts"
+            {
+                let ts = value.split_once('.').map_or(value, |(s, _)| s);
+                if let Ok(dt) = chrono::DateTime::parse_from_str(ts, "%s") {
+                    return dt.format("%Y-%m-%d %H:%M:%S UTC").to_string();
                 }
+                break;
             }
         }
     }
