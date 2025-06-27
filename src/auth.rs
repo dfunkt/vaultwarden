@@ -700,16 +700,16 @@ impl<'r> FromRequest<'r> for AdminHeaders {
 // but there could be cases where it is a query value.
 // First check the path, if this is not a valid uuid, try the query values.
 fn get_col_id(request: &Request<'_>) -> Option<CollectionId> {
-    if let Some(Ok(col_id)) = request.param::<String>(3) {
-        if uuid::Uuid::parse_str(&col_id).is_ok() {
-            return Some(col_id.into());
-        }
+    if let Some(Ok(col_id)) = request.param::<String>(3)
+        && uuid::Uuid::parse_str(&col_id).is_ok()
+    {
+        return Some(col_id.into());
     }
 
-    if let Some(Ok(col_id)) = request.query_value::<String>("collectionId") {
-        if uuid::Uuid::parse_str(&col_id).is_ok() {
-            return Some(col_id.into());
-        }
+    if let Some(Ok(col_id)) = request.query_value::<String>("collectionId")
+        && uuid::Uuid::parse_str(&col_id).is_ok()
+    {
+        return Some(col_id.into());
     }
 
     None
