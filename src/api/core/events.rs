@@ -207,22 +207,21 @@ async fn post_events_collect(data: Json<Vec<EventCollection>>, headers: Headers,
                 }
             }
             _ => {
-                if let Some(cipher_uuid) = &event.cipher_id {
-                    if let Some(cipher) = Cipher::find_by_uuid(cipher_uuid, &mut conn).await {
-                        if let Some(org_id) = cipher.organization_uuid {
-                            _log_event(
-                                event.r#type,
-                                cipher_uuid,
-                                &org_id,
-                                &headers.user.uuid,
-                                headers.device.atype,
-                                Some(event_date),
-                                &headers.ip.ip,
-                                &mut conn,
-                            )
-                            .await;
-                        }
-                    }
+                if let Some(cipher_uuid) = &event.cipher_id
+                    && let Some(cipher) = Cipher::find_by_uuid(cipher_uuid, &mut conn).await
+                    && let Some(org_id) = cipher.organization_uuid
+                {
+                    _log_event(
+                        event.r#type,
+                        cipher_uuid,
+                        &org_id,
+                        &headers.user.uuid,
+                        headers.device.atype,
+                        Some(event_date),
+                        &headers.ip.ip,
+                        &mut conn,
+                    )
+                    .await;
                 }
             }
         }

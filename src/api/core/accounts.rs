@@ -231,10 +231,10 @@ pub async fn _register(data: Json<RegisterData>, email_verification: bool, mut c
 
     // Check if the length of the username exceeds 50 characters (Same is Upstream Bitwarden)
     // This also prevents issues with very long usernames causing to large JWT's. See #2419
-    if let Some(ref name) = data.name {
-        if name.len() > 50 {
-            err!("The field Name must be a string with a maximum length of 50.");
-        }
+    if let Some(ref name) = data.name
+        && name.len() > 50
+    {
+        err!("The field Name must be a string with a maximum length of 50.");
     }
 
     // Check against the password hint setting here so if it fails, the user
@@ -365,20 +365,20 @@ async fn post_set_password(data: Json<SetPasswordData>, headers: Headers, mut co
         user.public_key = Some(keys.public_key);
     }
 
-    if let Some(identifier) = data.org_identifier {
-        if identifier != crate::sso::FAKE_IDENTIFIER {
-            let org = match Organization::find_by_name(&identifier, &mut conn).await {
-                None => err!("Failed to retrieve the associated organization"),
-                Some(org) => org,
-            };
+    if let Some(identifier) = data.org_identifier
+        && identifier != crate::sso::FAKE_IDENTIFIER
+    {
+        let org = match Organization::find_by_name(&identifier, &mut conn).await {
+            None => err!("Failed to retrieve the associated organization"),
+            Some(org) => org,
+        };
 
-            let membership = match Membership::find_by_user_and_org(&user.uuid, &org.uuid, &mut conn).await {
-                None => err!("Failed to retrieve the invitation"),
-                Some(org) => org,
-            };
+        let membership = match Membership::find_by_user_and_org(&user.uuid, &org.uuid, &mut conn).await {
+            None => err!("Failed to retrieve the invitation"),
+            Some(org) => org,
+        };
 
-            accept_org_invite(&user, membership, None, &mut conn).await?;
-        }
+        accept_org_invite(&user, membership, None, &mut conn).await?;
     }
 
     if CONFIG.mail_enabled() {
@@ -445,10 +445,10 @@ async fn put_avatar(data: Json<AvatarData>, headers: Headers, mut conn: DbConn) 
     // It looks like it only supports the 6 hex color format.
     // If you try to add the short value it will not show that color.
     // Check and force 7 chars, including the #.
-    if let Some(color) = &data.avatar_color {
-        if color.len() != 7 {
-            err!("The field AvatarColor must be a HTML/Hex color code with a length of 7 characters")
-        }
+    if let Some(color) = &data.avatar_color
+        && color.len() != 7
+    {
+        err!("The field AvatarColor must be a HTML/Hex color code with a length of 7 characters")
     }
 
     let mut user = headers.user;
@@ -910,10 +910,10 @@ async fn post_email_token(data: Json<EmailTokenData>, headers: Headers, mut conn
     }
 
     if User::find_by_mail(&data.new_email, &mut conn).await.is_some() {
-        if CONFIG.mail_enabled() {
-            if let Err(e) = mail::send_change_email_existing(&data.new_email, &user.email).await {
-                error!("Error sending change-email-existing email: {e:#?}");
-            }
+        if CONFIG.mail_enabled()
+            && let Err(e) = mail::send_change_email_existing(&data.new_email, &user.email).await
+        {
+            error!("Error sending change-email-existing email: {e:#?}");
         }
         err!("Email already in use");
     }
@@ -1059,10 +1059,10 @@ async fn post_delete_recover(data: Json<DeleteRecoverData>, mut conn: DbConn) ->
     let data: DeleteRecoverData = data.into_inner();
 
     if CONFIG.mail_enabled() {
-        if let Some(user) = User::find_by_mail(&data.email, &mut conn).await {
-            if mail::send_delete_account(&user.email, &user.uuid).await.is_err() {
-                error!("Error sending delete account email");
-            }
+        if let Some(user) = User::find_by_mail(&data.email, &mut conn).await
+            && mail::send_delete_account(&user.email, &user.uuid).await.is_err()
+        {
+            error!("Error sending delete account email");
         }
         Ok(())
     } else {
