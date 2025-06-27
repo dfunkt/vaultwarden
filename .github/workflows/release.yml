@@ -309,3 +309,15 @@ jobs:
         with:
           name: vaultwarden-${{ needs.docker-build.outputs.source-version }}-${MATRIX_PLATFORMS}-${BASE_IMAGE}
           path: /tmp/vaultwarden/${MATRIX_PLATFORMS}/vaultwarden-*
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    needs: docker-build
+    steps:
+      - name: Invoke deployment hook
+        uses: distributhor/workflow-webhook@v3
+        with:
+          webhook_url: ${{ secrets.WEBHOOK_URL }}
+          webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
