@@ -540,10 +540,10 @@ pub struct AnonymousWebSocketSubscriptions {
 
 impl AnonymousWebSocketSubscriptions {
     async fn send_update(&self, token: &str, data: &[u8]) {
-        if let Some(sender) = self.map.get(token).map(|v| v.clone()) {
-            if let Err(e) = sender.send(Message::binary(data)).await {
-                error!("Error sending WS update {e}");
-            }
+        if let Some(sender) = self.map.get(token).map(|v| v.clone())
+            && let Err(e) = sender.send(Message::binary(data)).await
+        {
+            error!("Error sending WS update {e}");
         }
     }
 
