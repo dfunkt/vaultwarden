@@ -243,23 +243,23 @@ pub async fn push_folder_update(ut: UpdateType, folder: &Folder, device: &Device
 }
 
 pub async fn push_send_update(ut: UpdateType, send: &Send, device: &Device, conn: &mut crate::db::DbConn) {
-    if let Some(s) = &send.user_uuid {
-        if Device::check_user_has_push_device(s, conn).await {
-            tokio::task::spawn(send_to_push_relay(json!({
+    if let Some(s) = &send.user_uuid
+        && Device::check_user_has_push_device(s, conn).await
+    {
+        tokio::task::spawn(send_to_push_relay(json!({
+            "userId": send.user_uuid,
+            "organizationId": null,
+            "deviceId": device.push_uuid, // Should be the records unique uuid of the acting device (unique uuid per user/device)
+            "identifier": device.uuid, // Should be the acting device id (aka uuid per device/app)
+            "type": ut as i32,
+            "payload": {
+                "id": send.uuid,
                 "userId": send.user_uuid,
-                "organizationId": null,
-                "deviceId": device.push_uuid, // Should be the records unique uuid of the acting device (unique uuid per user/device)
-                "identifier": device.uuid, // Should be the acting device id (aka uuid per device/app)
-                "type": ut as i32,
-                "payload": {
-                    "id": send.uuid,
-                    "userId": send.user_uuid,
-                    "revisionDate": format_date(&send.revision_date)
-                },
-                "clientType": null,
-                "installationId": null
-            })));
-        }
+                "revisionDate": format_date(&send.revision_date)
+            },
+            "clientType": null,
+            "installationId": null
+        })));
     }
 }
 
