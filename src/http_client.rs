@@ -61,10 +61,10 @@ pub fn get_reqwest_client_builder() -> ClientBuilder {
 }
 
 pub fn should_block_address(domain_or_ip: &str) -> bool {
-    if let Ok(ip) = IpAddr::from_str(domain_or_ip) {
-        if should_block_ip(ip) {
-            return true;
-        }
+    if let Ok(ip) = IpAddr::from_str(domain_or_ip)
+        && should_block_ip(ip)
+    {
+        return true;
     }
 
     should_block_address_regex(domain_or_ip)
@@ -87,10 +87,10 @@ fn should_block_address_regex(domain_or_ip: &str) -> bool {
     let mut guard = COMPILED_REGEX.lock().unwrap();
 
     // If the stored regex is up to date, use it
-    if let Some((value, regex)) = &*guard {
-        if value == &block_regex {
-            return regex.is_match(domain_or_ip);
-        }
+    if let Some((value, regex)) = &*guard
+        && value == &block_regex
+    {
+        return regex.is_match(domain_or_ip);
     }
 
     // If we don't have a regex stored, or it's not up to date, recreate it
@@ -108,13 +108,13 @@ fn should_block_host(host: &Host<&str>) -> Result<(), CustomHttpClientError> {
         Host::Domain(d) => (None, (*d).to_string()),
     };
 
-    if let Some(ip) = ip {
-        if should_block_ip(ip) {
-            return Err(CustomHttpClientError::NonGlobalIp {
-                domain: None,
-                ip,
-            });
-        }
+    if let Some(ip) = ip
+        && should_block_ip(ip)
+    {
+        return Err(CustomHttpClientError::NonGlobalIp {
+            domain: None,
+            ip,
+        });
     }
 
     if should_block_address_regex(&host_str) {

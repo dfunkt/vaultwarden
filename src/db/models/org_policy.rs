@@ -271,10 +271,10 @@ impl OrgPolicy {
                 continue;
             }
 
-            if let Some(user) = Membership::find_by_user_and_org(user_uuid, &policy.org_uuid, conn).await {
-                if user.atype < MembershipType::Admin {
-                    return true;
-                }
+            if let Some(user) = Membership::find_by_user_and_org(user_uuid, &policy.org_uuid, conn).await
+                && user.atype < MembershipType::Admin
+            {
+                return true;
             }
         }
         false
@@ -330,16 +330,16 @@ impl OrgPolicy {
         for policy in
             OrgPolicy::find_confirmed_by_user_and_active_policy(user_uuid, OrgPolicyType::SendOptions, conn).await
         {
-            if let Some(user) = Membership::find_by_user_and_org(user_uuid, &policy.org_uuid, conn).await {
-                if user.atype < MembershipType::Admin {
-                    match serde_json::from_str::<SendOptionsPolicyData>(&policy.data) {
-                        Ok(opts) => {
-                            if opts.disable_hide_email {
-                                return true;
-                            }
+            if let Some(user) = Membership::find_by_user_and_org(user_uuid, &policy.org_uuid, conn).await
+                && user.atype < MembershipType::Admin
+            {
+                match serde_json::from_str::<SendOptionsPolicyData>(&policy.data) {
+                    Ok(opts) => {
+                        if opts.disable_hide_email {
+                            return true;
                         }
-                        _ => error!("Failed to deserialize SendOptionsPolicyData: {}", policy.data),
                     }
+                    _ => error!("Failed to deserialize SendOptionsPolicyData: {}", policy.data),
                 }
             }
         }
@@ -347,10 +347,10 @@ impl OrgPolicy {
     }
 
     pub async fn is_enabled_for_member(member_uuid: &MembershipId, policy_type: OrgPolicyType, conn: &DbConn) -> bool {
-        if let Some(member) = Membership::find_by_uuid(member_uuid, conn).await {
-            if let Some(policy) = OrgPolicy::find_by_org_and_type(&member.org_uuid, policy_type, conn).await {
-                return policy.enabled;
-            }
+        if let Some(member) = Membership::find_by_uuid(member_uuid, conn).await
+            && let Some(policy) = OrgPolicy::find_by_org_and_type(&member.org_uuid, policy_type, conn).await
+        {
+            return policy.enabled;
         }
         false
     }

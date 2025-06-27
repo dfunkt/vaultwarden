@@ -239,10 +239,10 @@ pub async fn _register(data: Json<RegisterData>, email_verification: bool, conn:
 
     // Check if the length of the username exceeds 50 characters (Same is Upstream Bitwarden)
     // This also prevents issues with very long usernames causing to large JWT's. See #2419
-    if let Some(ref name) = data.name {
-        if name.len() > 50 {
-            err!("The field Name must be a string with a maximum length of 50.");
-        }
+    if let Some(ref name) = data.name
+        && name.len() > 50
+    {
+        err!("The field Name must be a string with a maximum length of 50.");
     }
 
     // Check against the password hint setting here so if it fails, the user
@@ -373,20 +373,20 @@ async fn post_set_password(data: Json<SetPasswordData>, headers: Headers, conn: 
         user.public_key = Some(keys.public_key);
     }
 
-    if let Some(identifier) = data.org_identifier {
-        if identifier != crate::sso::FAKE_IDENTIFIER {
-            let org = match Organization::find_by_uuid(&identifier.into(), &conn).await {
-                None => err!("Failed to retrieve the associated organization"),
-                Some(org) => org,
-            };
+    if let Some(identifier) = data.org_identifier
+        && identifier != crate::sso::FAKE_IDENTIFIER
+    {
+        let org = match Organization::find_by_uuid(&identifier.into(), &conn).await {
+            None => err!("Failed to retrieve the associated organization"),
+            Some(org) => org,
+        };
 
-            let membership = match Membership::find_by_user_and_org(&user.uuid, &org.uuid, &conn).await {
-                None => err!("Failed to retrieve the invitation"),
-                Some(org) => org,
-            };
+        let membership = match Membership::find_by_user_and_org(&user.uuid, &org.uuid, &conn).await {
+            None => err!("Failed to retrieve the invitation"),
+            Some(org) => org,
+        };
 
-            accept_org_invite(&user, membership, None, &conn).await?;
-        }
+        accept_org_invite(&user, membership, None, &conn).await?;
     }
 
     if CONFIG.mail_enabled() {
@@ -453,10 +453,10 @@ async fn put_avatar(data: Json<AvatarData>, headers: Headers, conn: DbConn) -> J
     // It looks like it only supports the 6 hex color format.
     // If you try to add the short value it will not show that color.
     // Check and force 7 chars, including the #.
-    if let Some(color) = &data.avatar_color {
-        if color.len() != 7 {
-            err!("The field AvatarColor must be a HTML/Hex color code with a length of 7 characters")
-        }
+    if let Some(color) = &data.avatar_color
+        && color.len() != 7
+    {
+        err!("The field AvatarColor must be a HTML/Hex color code with a length of 7 characters")
     }
 
     let mut user = headers.user;
@@ -1077,10 +1077,10 @@ async fn post_delete_recover(data: Json<DeleteRecoverData>, conn: DbConn) -> Emp
     let data: DeleteRecoverData = data.into_inner();
 
     if CONFIG.mail_enabled() {
-        if let Some(user) = User::find_by_mail(&data.email, &conn).await {
-            if mail::send_delete_account(&user.email, &user.uuid).await.is_err() {
-                error!("Error sending delete account email");
-            }
+        if let Some(user) = User::find_by_mail(&data.email, &conn).await
+            && mail::send_delete_account(&user.email, &user.uuid).await.is_err()
+        {
+            error!("Error sending delete account email");
         }
         Ok(())
     } else {

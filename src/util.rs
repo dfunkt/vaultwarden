@@ -453,10 +453,10 @@ pub fn validate_and_format_date(dt: &str) -> String {
 pub fn format_datetime_local(dt: &DateTime<Local>, fmt: &str) -> String {
     // Try parsing the `TZ` environment variable to enable formatting `%Z` as
     // a time zone abbreviation.
-    if let Ok(tz) = env::var("TZ") {
-        if let Ok(tz) = tz.parse::<chrono_tz::Tz>() {
-            return dt.with_timezone(&tz).format(fmt).to_string();
-        }
+    if let Ok(tz) = env::var("TZ")
+        && let Ok(tz) = tz.parse::<chrono_tz::Tz>()
+    {
+        return dt.with_timezone(&tz).format(fmt).to_string();
     }
 
     // Otherwise, fall back to formatting `%Z` as a UTC offset.
@@ -539,10 +539,10 @@ pub fn get_web_vault_version() -> String {
     ];
 
     for version_file in version_files {
-        if let Ok(version_str) = std::fs::read_to_string(&version_file) {
-            if let Ok(version) = serde_json::from_str::<WebVaultVersion>(&version_str) {
-                return String::from(version.version.trim_start_matches('v'));
-            }
+        if let Ok(version_str) = std::fs::read_to_string(&version_file)
+            && let Ok(version) = serde_json::from_str::<WebVaultVersion>(&version_str)
+        {
+            return String::from(version.version.trim_start_matches('v'));
         }
     }
 
