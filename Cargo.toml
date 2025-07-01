@@ -73,7 +73,7 @@ dashmap = "6.1.0"
 
 # Async futures
 futures = "0.3.31"
-tokio = { version = "1.45.1", features = ["rt-multi-thread", "fs", "io-util", "parking_lot", "time", "signal", "net"] }
+tokio = { version = "1.46.0", features = ["rt-multi-thread", "fs", "io-util", "parking_lot", "time", "signal", "net"] }
 tokio-util = { version = "0.7.15", features = ["compat"]}
 
 # A generic serialization/deserialization framework
@@ -120,7 +120,7 @@ totp-lite = "2.0.1"
 yubico = { package = "yubico_ng", version = "0.13.0", features = ["online-tokio"], default-features = false }
 
 # WebAuthn libraries
-webauthn-rs = "0.3.2"
+webauthn-rs = { version = "=0.5.1", features = ["danger-allow-state-serialisation", "danger-credential-internals"] }
 
 # Handling of URL's for WebAuthn and favicons
 url = "2.5.4"
@@ -134,7 +134,7 @@ email_address = "0.2.9"
 handlebars = { version = "6.3.2", features = ["dir_source"] }
 
 # HTTP client (Used for favicons, version check, DUO and HIBP API)
-reqwest = { version = "0.12.20", features = ["rustls-tls", "rustls-tls-native-roots", "stream", "json", "deflate", "gzip", "brotli", "zstd", "socks", "cookies", "charset", "http2", "system-proxy"], default-features = false}
+reqwest = { version = "0.12.22", features = ["rustls-tls", "rustls-tls-native-roots", "stream", "json", "deflate", "gzip", "brotli", "zstd", "socks", "cookies", "charset", "http2", "system-proxy"], default-features = false}
 hickory-resolver = "0.25.2"
 
 # Favicon extraction libraries
@@ -184,11 +184,14 @@ opendal = { version = "0.53.3", features = ["services-fs"], default-features = f
 
 # For retrieving AWS credentials, including temporary SSO credentials
 anyhow = { version = "1.0.98", optional = true }
-aws-config = { version = "1.8.0", features = ["behavior-version-latest", "rt-tokio", "credentials-process", "sso"], default-features = false, optional = true }
+aws-config = { version = "1.8.1", features = ["behavior-version-latest", "rt-tokio", "credentials-process", "sso"], default-features = false, optional = true }
 aws-credential-types = { version = "1.2.3", optional = true }
 aws-smithy-runtime-api = { version = "1.8.1", optional = true }
 http = { version = "1.3.1", optional = true }
 reqsign = { version = "0.16.5", optional = true }
+
+[patch.crates-io]
+webauthn-rs = { git = "https://github.com/dfunkt/webauthn-rs", rev = "824bffe89dad27148ea6b86b7fbb43f5214e9cf2" }
 
 # Strip debuginfo from the release builds
 # The debug symbols are to provide better panic traces
