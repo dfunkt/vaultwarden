@@ -19,41 +19,28 @@
 # - From https://hub.docker.com/r/vaultwarden/web-vault/tags,
 #   click the tag name to view the digest of the image it currently points to.
 # - From the command line:
-#     $ docker pull docker.io/vaultwarden/web-vault:{{ vault_version | replace('+', '_') }}
-#     $ docker image inspect --format "{{ '{{' }}.RepoDigests}}" docker.io/vaultwarden/web-vault:{{ vault_version | replace('+', '_') }}
-#     [docker.io/vaultwarden/web-vault@{{ vault_image_digest }}]
+#     $ docker pull docker.io/vaultwarden/web-vault:v2025.12.1
+#     $ docker image inspect --format "{{.RepoDigests}}" docker.io/vaultwarden/web-vault:v2025.12.1
+#     [docker.io/vaultwarden/web-vault@sha256:dc718ffec13eccab8a849d65dd436b38730577b9b46be4672d97debc88e2c0ad]
 #
 # - Conversely, to get the tag name from the digest:
-#     $ docker image inspect --format "{{ '{{' }}.RepoTags}}" docker.io/vaultwarden/web-vault@{{ vault_image_digest }}
-#     [docker.io/vaultwarden/web-vault:{{ vault_version | replace('+', '_') }}]
+#     $ docker image inspect --format "{{.RepoTags}}" docker.io/vaultwarden/web-vault@sha256:dc718ffec13eccab8a849d65dd436b38730577b9b46be4672d97debc88e2c0ad
+#     [docker.io/vaultwarden/web-vault:v2025.12.1]
 #
-{% macro xx_cargo_config() -%}
-# Workaround for xx related build issues
-    # https://github.com/tonistiigi/xx/pull/108#issuecomment-3700635977
-    PKG_CONFIG="$(command -v "$(xx-info)-pkg-config")" xx-cargo build --features ${DB} --profile "${CARGO_PROFILE}"
-{%- endmacro %}
-FROM --platform=linux/amd64 docker.io/vaultwarden/web-vault@{{ vault_image_digest }} AS vault
+FROM --platform=linux/amd64 docker.io/vaultwarden/web-vault@sha256:dc718ffec13eccab8a849d65dd436b38730577b9b46be4672d97debc88e2c0ad AS vault
 
-{% if base == "debian" %}
-########################## Cross Compile Docker Helper Scripts ##########################
-## We use the linux/amd64 no matter which Build Platform, since these are all bash scripts
-## And these bash scripts do not have any significant difference if at all
-FROM --platform=linux/amd64 docker.io/tonistiigi/xx@{{ xx_image_digest }} AS xx
-{% elif base in ["alpine", "scratch"] %}
 ########################## ALPINE BUILD IMAGES ##########################
 ## NOTE: The Alpine Base Images do not support other platforms then linux/amd64 and linux/arm64
 ## And for Alpine we define all build images here, they will only be loaded when actually used
-{% for arch in build_stage_image[base].arch_image %}
-FROM --platform=$BUILDPLATFORM {{ build_stage_image[base].arch_image[arch] }} AS build_{{ arch }}
-{% endfor %}
-{% endif %}
+FROM --platform=$BUILDPLATFORM ghcr.io/blackdex/rust-musl:x86_64-musl-stable-1.92.0 AS build_amd64
+FROM --platform=$BUILDPLATFORM ghcr.io/blackdex/rust-musl:x86_64-musl-stable-1.92.0 AS build_amd64v3
+FROM --platform=$BUILDPLATFORM ghcr.io/blackdex/rust-musl:aarch64-musl-stable-1.92.0 AS build_arm64
+FROM --platform=$BUILDPLATFORM ghcr.io/blackdex/rust-musl:armv7-musleabihf-stable-1.92.0 AS build_armv7
+FROM --platform=$BUILDPLATFORM ghcr.io/blackdex/rust-musl:arm-musleabi-stable-1.92.0 AS build_armv6
 
 ########################## BUILD IMAGE ##########################
 # hadolint ignore=DL3006
-FROM --platform=$BUILDPLATFORM {{ build_stage_image[base].image }} AS build
-{% if base == "debian" %}
-COPY --from=xx / /
-{% endif %}
+FROM --platform=$BUILDPLATFORM build_${TARGETARCH}${TARGETVARIANT} AS build
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -63,23 +50,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
     TZ=UTC \
     TERM=xterm-256color \
     CARGO_HOME="/root/.cargo" \
-    USER="root"
-{%- if base in ["alpine", "scratch"] %} \
+    USER="root" \
     # Use PostgreSQL v17 during Alpine/MUSL builds instead of the default v16
     # Debian Trixie uses libpq v17
     PQ_LIB_DIR="/usr/local/musl/pq17/lib"
-{% endif %}
 
-{% if base == "debian" %}
-# Install clang && xx-c-essentials to get `xx-cargo` working
-# Install pkg-config to allow amd64 builds to find all libraries
-# Install git so build.rs can determine the correct version
-RUN apt-get update && \
-    apt-get install -y \
-        --no-install-recommends \
-        clang \
-        git
-{% endif %}
 
 # Create CARGO_HOME folder and don't download rust docs
 RUN mkdir -pv "${CARGO_HOME}" && \
@@ -100,29 +75,12 @@ ARG TARGETARCH
 ARG TARGETVARIANT
 ARG TARGETPLATFORM
 
-{% if base == "debian" %}
-# Install the libc cross packages based upon the debian-arch
-RUN apt-get update && \
-    xx-apt-get install -y \
-        --no-install-recommends \
-        libpq-dev \
-        libpq5 \
-        libssl-dev \
-        libmariadb-dev \
-        pkg-config \
-        zlib1g-dev \
-        xx-c-essentials && \
-    # Run xx-cargo early, since it sometimes seems to break when run at a later stage
-    echo "export CARGO_TARGET=$(xx-cargo --print-target-triple)" >> /env-cargo
-{% endif %}
 
-{% if base in ["alpine", "scratch"] %}
 # Environment variables for Cargo on Alpine based builds
 RUN echo "export CARGO_TARGET=${RUST_MUSL_CROSS_TARGET}" >> /env-cargo && \
     # Output the current contents of the file
     cat /env-cargo
 
-{% endif %}
 RUN source /env-cargo && \
     rustup target add "${CARGO_TARGET}"
 
@@ -134,22 +92,14 @@ RUN source /env-cargo && \
 ARG CARGO_PROFILE=release
 
 # Configure the DB ARG as late as possible to not invalidate the cached layers above
-{% if base == "debian" %}
-ARG DB=sqlite,mysql,postgresql
-{% elif base in ["alpine", "scratch"] %}
 # Enable MiMalloc to improve performance on Alpine builds
 ARG DB=sqlite,mysql,postgresql,enable_mimalloc
-{% endif %}
 
 # Builds your dependencies and removes the
 # dummy project, except the target folder
 # This folder contains the compiled dependencies
 RUN source /env-cargo && \
-{% if base == "debian" %}
-    {{ xx_cargo_config() }} && \
-{% elif base in ["alpine", "scratch"] %}
     cargo build --features ${DB} --profile "${CARGO_PROFILE}" --target="${CARGO_TARGET}" && \
-{% endif %}
     find . -not -path "./target*" -delete
 
 # Copies the complete project
@@ -164,11 +114,7 @@ RUN source /env-cargo && \
     # Also do this for build.rs to ensure the version is rechecked
     touch build.rs src/main.rs && \
     # Create a symlink to the binary target folder to easy copy the binary in the final stage
-{% if base == "debian" %}
-    {{ xx_cargo_config() }} && \
-{% elif base in ["alpine", "scratch"] %}
     cargo build --features ${DB} --profile "${CARGO_PROFILE}" --target="${CARGO_TARGET}" && \
-{% endif %}
     if [[ "${CARGO_PROFILE}" == "dev" ]] ; then \
         ln -vfsr "/app/target/${CARGO_TARGET}/debug" /app/target/final ; \
     else \
@@ -192,38 +138,12 @@ RUN source /env-cargo && \
 # To uninstall: docker run --privileged --rm tonistiigi/binfmt --uninstall 'qemu-*'
 #
 # We need to add `--platform` here, because of a podman bug: https://github.com/containers/buildah/issues/4742
-FROM --platform=$TARGETPLATFORM {{ runtime_stage_image[base] }}
+FROM --platform=$TARGETPLATFORM scratch
 
 ENV ROCKET_PROFILE="release" \
     ROCKET_ADDRESS=0.0.0.0 \
-    ROCKET_PORT=80
-{%- if base == "debian" %} \
-    DEBIAN_FRONTEND=noninteractive
-{% elif base == "alpine" %} \
-    SSL_CERT_DIR=/etc/ssl/certs
-{% elif base == "scratch" %} \
+    ROCKET_PORT=80 \
     SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
-{%- endif %}
-
-{% if base == "debian" or base == "alpine" %}
-# Create data folder and Install needed libraries
-RUN mkdir /data && \
-{% endif %}
-{% if base == "debian" %}
-    apt-get update && apt-get install -y \
-        --no-install-recommends \
-        ca-certificates \
-        libmariadb3 \
-        libpq5 \
-        openssl && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-{% elif base == "alpine" %}
-    apk --no-cache add \
-        ca-certificates \
-        openssl \
-        tzdata
-{% endif %}
 
 VOLUME /data
 EXPOSE 80
@@ -233,9 +153,7 @@ EXPOSE 80
 WORKDIR /
 
 COPY --link --from=vault /web-vault ./web-vault
-{% if base == "scratch" %}
 COPY --link --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-{% endif %}
 COPY --link --from=build /app/target/final/vaultwarden .
 
 ENTRYPOINT ["/vaultwarden"]
