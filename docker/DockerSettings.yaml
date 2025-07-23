@@ -27,3 +27,4 @@ build_stage_image:
 runtime_stage_image:
   debian: "docker.io/library/debian:{{debian_version}}-slim"
   alpine: "docker.io/library/alpine:{{alpine_version}}"
+  scratch: "scratch"
