@@ -1,7 +1,7 @@
 use reqwest::Method;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::{env, sync::LazyLock};
+use std::{env, sync::LazyLock, time::Duration};
 
 use rocket::serde::json::Json;
 use rocket::{
