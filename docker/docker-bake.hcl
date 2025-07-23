@@ -206,10 +206,60 @@ group "alpine-all" {
 }
 
 
+// ==== Scratch Baking ====
+
+// Default Scratch target, will build a container using the hosts platform architecture
+target "scratch" {
+  inherits = ["_default_attributes"]
+  dockerfile = "docker/Dockerfile.scratch"
+  tags = generate_tags("-scratch", platform_tag())
+  output = ["type=docker"]
+}
+
+// Multi Platform target, will build one tagged manifest with all supported architectures
+// This is mainly used by GitHub Actions to build and push new containers
+target "scratch-multi" {
+  inherits = ["scratch"]
+  platforms = ["linux/amd64", "linux/arm64", "linux/arm/v7", "linux/arm/v6"]
+  tags = generate_tags("-scratch", "")
+  output = [join(",", flatten([["type=registry"], image_index_annotations()]))]
+}
+
+// Per platform targets, to individually test building per platform locally
+target "scratch-amd64" {
+  inherits = ["scratch"]
+  platforms = ["linux/amd64"]
+  tags = generate_tags("-scratch", "-amd64")
+}
+
+target "scratch-arm64" {
+  inherits = ["scratch"]
+  platforms = ["linux/arm64"]
+  tags = generate_tags("-scratch", "-arm64")
+}
+
+target "scratch-armv7" {
+  inherits = ["scratch"]
+  platforms = ["linux/arm/v7"]
+  tags = generate_tags("-scratch", "-armv7")
+}
+
+target "scratch-armv6" {
+  inherits = ["scratch"]
+  platforms = ["linux/arm/v6"]
+  tags = generate_tags("-scratch", "-armv6")
+}
+
+// A Group to build all platforms individually for local testing
+group "scratch-all" {
+  targets = ["scratch-amd64", "scratch-arm64", "scratch-armv7", "scratch-armv6"]
+}
+
+
 // ==== Bake everything locally ====
 
 group "all" {
-  targets = ["debian-all", "alpine-all"]
+  targets = ["debian-all", "alpine-all", "scratch-all"]
 }
 
 
@@ -244,6 +294,8 @@ function "generate_tags" {
         concat(
           # If the base_tag contains latest, and the suffix contains `-alpine` add a `:alpine` tag too
           base_tag == "latest" ? suffix == "-alpine" ? ["${registry}:alpine${platform}"] : [] : [],
+          # If the base_tag contains latest, and the suffix contains `-scratch` add a `:scratch` tag too
+          base_tag == "latest" ? suffix == "-scratch" ? ["${registry}:scratch${platform}"] : [] : [],
           # The default tagging strategy
           ["${registry}:${base_tag}${suffix}${platform}"]
         )
