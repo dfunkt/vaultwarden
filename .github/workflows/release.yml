@@ -217,7 +217,7 @@ jobs:
             *.cache-to=${{ env.BAKE_CACHE_TO }}
             *.platform=${{ env.BAKE_PLATFORMS }}
             *.output=type=local,dest=/tmp/vaultwarden
-            *.output=type=registry
+            *.output=type=registry,compression=zstd,force-compression=true
 
       - name: Extract digest SHA
         shell: bash
