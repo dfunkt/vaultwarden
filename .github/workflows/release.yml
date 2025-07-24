@@ -46,7 +46,7 @@ jobs:
       PLATFORMS: "['linux/amd64', 'linux/amd64/v3', 'linux/arm64']"
     strategy:
       matrix:
-        base_image: ["debian","alpine","scratch"]
+        base_image: ${{ fromJSON(vars.BASE_IMAGE) }}
 
     outputs:
       source-version: ${{ steps.determine-version.outputs.SOURCE_VERSION }}
@@ -271,7 +271,7 @@ jobs:
     needs: docker-build
     strategy:
       matrix:
-        base_image: ["debian","alpine","scratch"]
+        base_image: ${{ fromJSON(vars.BASE_IMAGE) }}
         platforms: ${{ fromJSON(needs.docker-build.outputs.platforms) }}
 
     env:
