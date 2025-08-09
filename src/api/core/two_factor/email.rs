@@ -25,6 +25,7 @@ pub fn routes() -> Vec<Route> {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SendEmailLoginData {
+    #[serde(alias = "DeviceIdentifier")]
     device_identifier: DeviceId,
 
     #[allow(unused)]
