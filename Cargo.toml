@@ -50,7 +50,7 @@ syslog = "7.0.0"
 macros = { path = "./macros" }
 
 # Logging
-log = "0.4.27"
+log = "0.4.28"
 fern = { version = "0.7.1", features = ["syslog-7", "reopen-1"] }
 tracing = { version = "0.1.41", features = ["log"] } # Needed to have lettre and webauthn-rs trace logging to work
 
@@ -82,8 +82,8 @@ serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.143"
 
 # A safe, extensible ORM and Query builder
-diesel = { version = "2.2.12", features = ["chrono", "r2d2", "numeric"] }
-diesel_migrations = "2.2.0"
+diesel = { version = "2.3.1", features = ["chrono", "r2d2", "numeric"] }
+diesel_migrations = "2.3.0"
 diesel_logger = { version = "0.4.0", optional = true }
 
 derive_more = { version = "2.0.1", features = ["from", "into", "as_ref", "deref", "display"] }
@@ -98,12 +98,12 @@ ring = "0.17.14"
 subtle = "2.6.1"
 
 # UUID generation
-uuid = { version = "1.18.0", features = ["v4"] }
+uuid = { version = "1.18.1", features = ["v4"] }
 
 # Date and time libraries
-chrono = { version = "0.4.41", features = ["clock", "serde"], default-features = false }
+chrono = { version = "0.4.42", features = ["clock", "serde"], default-features = false }
 chrono-tz = "0.10.4"
-time = "0.3.41"
+time = "0.3.43"
 
 # Job scheduler
 job_scheduler_ng = "2.3.0"
@@ -154,7 +154,7 @@ cached = { version = "0.56.0", features = ["async"] }
 
 # Used for custom short lived cookie jar during favicon extraction
 cookie = "0.18.1"
-cookie_store = "0.21.1"
+cookie_store = "0.22.0"
 
 # Used by U2F, JWT and PostgreSQL
 openssl = "0.10.73"
@@ -193,11 +193,14 @@ opendal = { version = "0.54.0", features = ["services-fs"], default-features = f
 
 # For retrieving AWS credentials, including temporary SSO credentials
 anyhow = { version = "1.0.99", optional = true }
-aws-config = { version = "1.8.5", features = ["behavior-version-latest", "rt-tokio", "credentials-process", "sso"], default-features = false, optional = true }
-aws-credential-types = { version = "1.2.5", optional = true }
+aws-config = { version = "1.8.6", features = ["behavior-version-latest", "rt-tokio", "credentials-process", "sso"], default-features = false, optional = true }
+aws-credential-types = { version = "1.2.6", optional = true }
 aws-smithy-runtime-api = { version = "1.9.0", optional = true }
 http = { version = "1.3.1", optional = true }
-reqsign = { version = "0.16.5", optional = true }
+reqsign = { version = "0.17.0", optional = true }
+
+[patch.crates-io]
+diesel_logger = { git = "https://github.com/dfunkt/diesel-logger.git", rev = "f95a2f81ebd5d05af1b0a67226007ef4869f8d73" }
 
 # Strip debuginfo from the release builds
 # The debug symbols are to provide better panic traces
