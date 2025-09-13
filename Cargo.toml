@@ -94,7 +94,7 @@ libsqlite3-sys = { version = "0.35.0", features = ["bundled"], optional = true }
 
 # Crypto-related libraries
 rand = "0.9.2"
-ring = "0.17.14"
+aws-lc-rs = "1.14.0"
 subtle = "2.6.1"
 
 # UUID generation
@@ -131,7 +131,7 @@ webauthn-rs-core = "0.5.2"
 url = "2.5.7"
 
 # Email libraries
-lettre = { version = "0.11.18", features = ["smtp-transport", "sendmail-transport", "builder", "serde", "hostname", "tracing", "tokio1-rustls", "ring", "rustls-native-certs"], default-features = false }
+lettre = { version = "0.11.18", features = ["smtp-transport", "sendmail-transport", "builder", "serde", "hostname", "tracing", "tokio1-rustls", "aws-lc-rs", "rustls-native-certs"], default-features = false }
 percent-encoding = "2.3.2" # URL encoding library used for URL's in the emails
 email_address = "0.2.9"
 
