@@ -90,7 +90,7 @@ struct IdTokenResponse {
 }
 
 // Inner structure of IdTokenResponse.id_token
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct IdTokenClaims {
     preferred_username: String,
     nonce: String,
