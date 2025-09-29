@@ -91,7 +91,7 @@ pub fn encode_ssotoken_claims() -> String {
     auth::encode_jwt(&claims)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum OIDCCodeWrapper {
     Ok {
         state: OIDCState,
@@ -104,7 +104,7 @@ pub enum OIDCCodeWrapper {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct OIDCCodeClaims {
     // Expiration time
     pub exp: i64,
@@ -141,7 +141,6 @@ impl BasicTokenClaims {
 fn decode_token_claims(token_name: &str, token: &str) -> ApiResult<BasicTokenClaims> {
     let mut validation = jsonwebtoken::Validation::default();
     validation.set_issuer(&[CONFIG.sso_authority()]);
-    validation.insecure_disable_signature_validation();
     validation.validate_aud = false;
 
     match jsonwebtoken::decode(token, &jsonwebtoken::DecodingKey::from_secret(&[]), &validation) {
