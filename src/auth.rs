@@ -100,7 +100,7 @@ pub fn encode_jwt<T: Serialize>(claims: &T) -> String {
     }
 }
 
-pub fn decode_jwt<T: DeserializeOwned>(token: &str, issuer: String) -> Result<T, Error> {
+pub fn decode_jwt<T: DeserializeOwned + Clone>(token: &str, issuer: String) -> Result<T, Error> {
     let mut validation = jsonwebtoken::Validation::new(JWT_ALGORITHM);
     validation.leeway = 30; // 30 seconds
     validation.validate_exp = true;
@@ -163,7 +163,7 @@ pub fn decode_register_verify(token: &str) -> Result<RegisterVerifyClaims, Error
     decode_jwt(token, JWT_REGISTER_VERIFY_ISSUER.to_string())
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LoginJwtClaims {
     // Not before
     pub nbf: i64,
@@ -283,7 +283,7 @@ impl LoginJwtClaims {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct InviteJwtClaims {
     // Not before
     pub nbf: i64,
@@ -321,7 +321,7 @@ pub fn generate_invite_claims(
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EmergencyAccessInviteJwtClaims {
     // Not before
     pub nbf: i64,
@@ -359,7 +359,7 @@ pub fn generate_emergency_access_invite_claims(
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OrgApiKeyLoginJwtClaims {
     // Not before
     pub nbf: i64,
@@ -391,7 +391,7 @@ pub fn generate_organization_api_key_login_claims(
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FileDownloadClaims {
     // Not before
     pub nbf: i64,
@@ -416,7 +416,7 @@ pub fn generate_file_download_claims(cipher_id: CipherId, file_id: AttachmentId)
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RegisterVerifyClaims {
     // Not before
     pub nbf: i64,
@@ -443,7 +443,7 @@ pub fn generate_register_verify_claims(email: String, name: Option<String>, veri
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BasicJwtClaims {
     // Not before
     pub nbf: i64,
@@ -1133,13 +1133,13 @@ impl AuthMethod {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TokenWrapper {
     Access(String),
     Refresh(String),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RefreshJwtClaims {
     // Not before
     pub nbf: i64,
