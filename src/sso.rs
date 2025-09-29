@@ -91,7 +91,7 @@ pub fn encode_ssotoken_claims() -> String {
     auth::encode_jwt(&claims)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum OIDCCodeWrapper {
     Ok {
         state: OIDCState,
@@ -104,7 +104,7 @@ pub enum OIDCCodeWrapper {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct OIDCCodeClaims {
     // Expiration time
     pub exp: i64,
