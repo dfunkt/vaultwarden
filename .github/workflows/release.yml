@@ -62,12 +62,12 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
         # https://github.com/moby/buildkit/issues/3969
-        # Also set max parallelism to 3, the default of 4 breaks GitHub Actions and causes OOMKills
+        # Also set max parallelism to 2, the default of 4 breaks GitHub Actions and causes OOMKills
         with:
           cache-binary: false
           buildkitd-config-inline: |
             [worker.oci]
-              max-parallelism = 3
+              max-parallelism = 2
 
       # Checkout the repo
       - name: Checkout
