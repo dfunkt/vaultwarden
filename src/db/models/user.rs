@@ -333,11 +333,10 @@ impl User {
         TwoFactorIncomplete::delete_all_by_user(&self.uuid, conn).await?;
         Invitation::take(&self.email, conn).await; // Delete invitation if any
 
-        db_run! { conn: {
-            diesel::delete(users::table.filter(users::uuid.eq(self.uuid)))
-                .execute(conn)
-                .map_res("Error deleting user")
-        }}
+        conn.run(move |conn| {
+            diesel::delete(users::table.filter(users::uuid.eq(self.uuid))).execute(conn).map_res("Error deleting user")
+        })
+        .await
     }
 
     pub async fn update_uuid_revision(uuid: &UserId, conn: &DbConn) {
@@ -349,14 +348,11 @@ impl User {
     pub async fn update_all_revisions(conn: &DbConn) -> EmptyResult {
         let updated_at = Utc::now().naive_utc();
 
-        db_run! { conn: {
-            retry(|| {
-                diesel::update(users::table)
-                    .set(users::updated_at.eq(updated_at))
-                    .execute(conn)
-            }, 10)
-            .map_res("Error updating revision date for all users")
-        }}
+        conn.run(move |conn| {
+            retry(|| diesel::update(users::table).set(users::updated_at.eq(updated_at)).execute(conn), 10)
+                .map_res("Error updating revision date for all users")
+        })
+        .await
     }
 
     pub async fn update_revision(&mut self, conn: &DbConn) -> EmptyResult {
@@ -366,48 +362,43 @@ impl User {
     }
 
     async fn _update_revision(uuid: &UserId, date: &NaiveDateTime, conn: &DbConn) -> EmptyResult {
-        db_run! { conn: {
-            retry(|| {
-                diesel::update(users::table.filter(users::uuid.eq(uuid)))
-                    .set(users::updated_at.eq(date))
-                    .execute(conn)
-            }, 10)
+        conn.run(move |conn| {
+            retry(
+                || {
+                    diesel::update(users::table.filter(users::uuid.eq(uuid)))
+                        .set(users::updated_at.eq(date))
+                        .execute(conn)
+                },
+                10,
+            )
             .map_res("Error updating user revision")
-        }}
+        })
+        .await
     }
 
     pub async fn find_by_mail(mail: &str, conn: &DbConn) -> Option<Self> {
         let lower_mail = mail.to_lowercase();
-        db_run! { conn: {
-            users::table
-                .filter(users::email.eq(lower_mail))
-                .first::<Self>(conn)
-                .ok()
-        }}
+        conn.run(move |conn| users::table.filter(users::email.eq(lower_mail)).first::<Self>(conn).ok()).await
     }
 
     pub async fn find_by_uuid(uuid: &UserId, conn: &DbConn) -> Option<Self> {
-        db_run! { conn: {
-            users::table
-                .filter(users::uuid.eq(uuid))
-                .first::<Self>(conn)
-                .ok()
-        }}
+        conn.run(move |conn| users::table.filter(users::uuid.eq(uuid)).first::<Self>(conn).ok()).await
     }
 
     pub async fn find_by_device_id(device_uuid: &DeviceId, conn: &DbConn) -> Option<Self> {
-        db_run! { conn: {
+        conn.run(move |conn| {
             users::table
                 .inner_join(devices::table.on(devices::user_uuid.eq(users::uuid)))
                 .filter(devices::uuid.eq(device_uuid))
                 .select(users::all_columns)
                 .first::<Self>(conn)
                 .ok()
-        }}
+        })
+        .await
     }
 
     pub async fn get_all(conn: &DbConn) -> Vec<(Self, Option<SsoUser>)> {
-        db_run! { conn: {
+        conn.run(move |conn| {
             users::table
                 .left_join(sso_users::table)
                 .select(<(Self, Option<SsoUser>)>::as_select())
@@ -415,7 +406,8 @@ impl User {
                 .expect("Error loading groups for user")
                 .into_iter()
                 .collect()
-        }}
+        })
+        .await
     }
 
     pub async fn last_active(&self, conn: &DbConn) -> Option<NaiveDateTime> {
@@ -460,21 +452,18 @@ impl Invitation {
     }
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
-        db_run! { conn: {
+        conn.run(move |conn| {
             diesel::delete(invitations::table.filter(invitations::email.eq(self.email)))
                 .execute(conn)
                 .map_res("Error deleting invitation")
-        }}
+        })
+        .await
     }
 
     pub async fn find_by_mail(mail: &str, conn: &DbConn) -> Option<Self> {
         let lower_mail = mail.to_lowercase();
-        db_run! { conn: {
-            invitations::table
-                .filter(invitations::email.eq(lower_mail))
-                .first::<Self>(conn)
-                .ok()
-        }}
+        conn.run(move |conn| invitations::table.filter(invitations::email.eq(lower_mail)).first::<Self>(conn).ok())
+            .await
     }
 
     pub async fn take(mail: &str, conn: &DbConn) -> bool {
@@ -524,34 +513,37 @@ impl SsoUser {
     }
 
     pub async fn find_by_identifier(identifier: &str, conn: &DbConn) -> Option<(User, Self)> {
-        db_run! { conn: {
+        conn.run(move |conn| {
             users::table
                 .inner_join(sso_users::table)
                 .select(<(User, Self)>::as_select())
                 .filter(sso_users::identifier.eq(identifier))
                 .first::<(User, Self)>(conn)
                 .ok()
-        }}
+        })
+        .await
     }
 
     pub async fn find_by_mail(mail: &str, conn: &DbConn) -> Option<(User, Option<Self>)> {
         let lower_mail = mail.to_lowercase();
 
-        db_run! { conn: {
+        conn.run(move |conn| {
             users::table
                 .left_join(sso_users::table)
                 .select(<(User, Option<Self>)>::as_select())
                 .filter(users::email.eq(lower_mail))
                 .first::<(User, Option<Self>)>(conn)
                 .ok()
-        }}
+        })
+        .await
     }
 
     pub async fn delete(user_uuid: &UserId, conn: &DbConn) -> EmptyResult {
-        db_run! { conn: {
+        conn.run(move |conn| {
             diesel::delete(sso_users::table.filter(sso_users::user_uuid.eq(user_uuid)))
                 .execute(conn)
                 .map_res("Error deleting sso user")
-        }}
+        })
+        .await
     }
 }
