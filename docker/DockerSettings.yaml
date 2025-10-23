@@ -14,10 +14,8 @@ platforms: ["linux/amd64", "linux/arm64", "linux/arm/v7", "linux/arm/v6"]
 build_stage_image:
   debian:
     image: "docker.io/library/rust:{{rust_version}}-slim-{{debian_version}}"
-    platform: "$BUILDPLATFORM"
   alpine: &musl_build_config
     image: "build_${TARGETARCH}${TARGETVARIANT}"
-    platform: "linux/amd64" # The Alpine build images only have linux/amd64 images
     arch_image:
       amd64: "ghcr.io/blackdex/rust-musl:x86_64-musl-stable-{{rust_version}}"
       amd64v3: "ghcr.io/blackdex/rust-musl:x86_64-musl-stable-{{rust_version}}"
