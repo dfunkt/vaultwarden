@@ -5,7 +5,7 @@ vault_image_digest: "sha256:29f7f1f40b0874439a3e7a33e29a31d03840c9e81545dcc297f3
 # We use the linux/amd64 platform shell scripts since there is no difference between the different platform scripts
 # https://github.com/dfunkt/xx
 xx_image_digest: "sha256:bf24a9a88ea76af4a8f505bff19e16f91e06a702098a6496f44a43a52882cbc4"
-rust_version: 1.90.0 # Rust version to be used
+rust_version: 1.91.0 # Rust version to be used
 debian_version: trixie # Debian release name to be used
 alpine_version: "3.22" # Alpine version to be used
 # For which platforms/architectures will we try to build images
