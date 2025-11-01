@@ -180,7 +180,7 @@ semver = "1.0.27"
 
 # Allow overriding the default memory allocator
 # Mainly used for the musl builds, since the default musl malloc is very slow
-mimalloc = { version = "0.1.48", features = ["secure"], default-features = false, optional = true }
+mimalloc = { version = "0.1.48", features = ["secure", "v3"], default-features = false, optional = true }
 
 which = "8.0.0"
 
