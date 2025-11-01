@@ -123,17 +123,15 @@ jobs:
           fi
       # End Determine Base Tags
 
-      # Login to Docker Hub
       - &dockerhub-login
         name: Login to Docker Hub
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
         if: ${{ env.HAVE_DOCKERHUB_LOGIN == 'true' }}
 
-      - &dockerhub-registry
-        name: Add registry for DockerHub
+      - name: Add registry for DockerHub
         if: ${{ env.HAVE_DOCKERHUB_LOGIN == 'true' }}
         shell: bash
         env:
@@ -142,8 +140,7 @@ jobs:
           echo "CONTAINER_REGISTRIES=${DOCKERHUB_REPO}" | tee -a "${GITHUB_ENV}"
 
       # Login to GitHub Container Registry
-      - &ghcr-login
-        name: Login to GitHub Container Registry
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
           registry: ghcr.io
@@ -151,8 +148,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ env.HAVE_GHCR_LOGIN == 'true' }}
 
-      - &ghcr-registry
-        name: Add registry for ghcr.io
+      - name: Add registry for ghcr.io
         if: ${{ env.HAVE_GHCR_LOGIN == 'true' }}
         shell: bash
         env:
@@ -161,8 +157,7 @@ jobs:
           echo "CONTAINER_REGISTRIES=${CONTAINER_REGISTRIES:+${CONTAINER_REGISTRIES},}${GHCR_REPO}" | tee -a "${GITHUB_ENV}"
 
       # Login to Quay.io
-      - &quay-login
-        name: Login to Quay.io
+      - name: Login to Quay.io
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
           registry: quay.io
@@ -170,8 +165,7 @@ jobs:
           password: ${{ secrets.QUAY_TOKEN }}
         if: ${{ env.HAVE_QUAY_LOGIN == 'true' }}
 
-      - &quay-registry
-        name: Add registry for Quay.io
+      - name: Add registry for Quay.io
         if: ${{ env.HAVE_QUAY_LOGIN == 'true' }}
         shell: bash
         env:
@@ -330,16 +324,6 @@ jobs:
           merge-multiple: true
 
       - *dockerhub-login
-
-      - *dockerhub-registry
-
-      - *ghcr-login
-
-      - *ghcr-registry
-
-      - *quay-login
-
-      - *quay-registry
 
       - name: Create manifest list, push it and extract digest SHA
         working-directory: ${{ runner.temp }}/digests
