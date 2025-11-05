@@ -70,7 +70,7 @@ pub use util::is_running_in_container;
 
 #[rocket::main]
 async fn main() -> Result<(), Error> {
-    parse_args();
+    parse_args().await;
     launch_info();
 
     let level = init_logging()?;
@@ -107,6 +107,7 @@ COMMAND:
     hash [--preset {bitwarden|owasp}]  Generate an Argon2id PHC ADMIN_TOKEN
     backup                             Create a backup of the SQLite database
                                        You can also send the USR1 signal to trigger a backup
+    healthcheck                        Perform a healthcheck by querying the /alive endpoint
 
 PRESETS:                  m=         t=          p=
     bitwarden (default) 64MiB, 3 Iterations, 4 Threads
@@ -116,7 +117,7 @@ PRESETS:                  m=         t=          p=
 
 pub const VERSION: Option<&str> = option_env!("VW_VERSION");
 
-fn parse_args() {
+async fn parse_args() {
     let mut pargs = pico_args::Arguments::from_env();
     let version = VERSION.unwrap_or("(Version info from Git not present)");
 
@@ -196,6 +197,11 @@ fn parse_args() {
                     println!("Backup failed. {e:?}");
                     exit(1);
                 }
+            }
+        } else if command == "healthcheck" {
+            match perform_healthcheck().await {
+                Ok(_) => exit(0),
+                Err(_) => exit(1),
             }
         }
         exit(0);
@@ -491,6 +497,43 @@ async fn check_data_folder() {
             ########################################################################################\n"
         );
         exit(1);
+    }
+}
+
+async fn perform_healthcheck() -> Result<(), Error> {
+    // Get the domain/address from config or use default
+    let domain = std::env::var("DOMAIN").unwrap_or_else(|_| "http://localhost".to_string());
+    let rocket_address = std::env::var("ROCKET_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let rocket_port = std::env::var("ROCKET_PORT").unwrap_or_else(|_| "80".to_string());
+
+    // Build the healthcheck URL
+    let base_url = if domain.starts_with("http://") || domain.starts_with("https://") {
+        domain.trim_end_matches('/').to_string()
+    } else if rocket_address == "0.0.0.0" || rocket_address == "::" {
+        format!("http://127.0.0.1:{}", rocket_port)
+    } else {
+        format!("http://{}:{}", rocket_address, rocket_port)
+    };
+
+    let healthcheck_url = format!("{}/alive", base_url);
+
+    // Perform the healthcheck request with timeout
+    let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(5)).build()?;
+
+    match client.get(&healthcheck_url).send().await {
+        Ok(response) => {
+            if response.status().is_success() {
+                info!("Healthcheck to {} successful: {}", healthcheck_url, response.status());
+                Ok(())
+            } else {
+                error!("Healthcheck to {} failed with status: {}", healthcheck_url, response.status());
+                Err(format!("HTTP {}", response.status()).into())
+            }
+        }
+        Err(e) => {
+            error!("Healthcheck to {} failed: {}", healthcheck_url, e);
+            Err(e.into())
+        }
     }
 }
 
