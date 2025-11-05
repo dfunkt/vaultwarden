@@ -116,7 +116,7 @@ job_scheduler_ng = "2.4.0"
 data-encoding = "2.9.0"
 
 # JWT library
-jsonwebtoken = "9.3.1"
+jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 
 # TOTP library
 totp-lite = "2.0.1"
