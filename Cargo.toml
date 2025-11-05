@@ -116,7 +116,7 @@ job_scheduler_ng = "2.4.0"
 data-encoding = "2.9.0"
 
 # JWT library
-jsonwebtoken = "9.3.1"
+jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 
 # TOTP library
 totp-lite = "2.0.1"
@@ -150,7 +150,7 @@ hickory-resolver = "0.25.2"
 html5gum = "0.8.0"
 regex = { version = "1.12.2", features = ["std", "perf", "unicode-perl"], default-features = false }
 data-url = "0.3.2"
-bytes = "1.10.1"
+bytes = "1.11.0"
 svg-hush = "0.9.5"
 
 # Cache function results (Used for version check and favicon fetching)
@@ -168,7 +168,7 @@ pico-args = "0.5.0"
 
 # Macro ident concatenation
 pastey = "0.1.1"
-governor = "0.10.1"
+governor = "0.10.2"
 
 # OIDC for SSO
 openidconnect = { version = "4.0.1", features = ["reqwest", "native-tls"] }
