@@ -70,7 +70,7 @@ pub use util::is_running_in_container;
 
 #[rocket::main]
 async fn main() -> Result<(), Error> {
-    parse_args();
+    parse_args().await;
     launch_info();
 
     let level = init_logging()?;
@@ -107,6 +107,8 @@ COMMAND:
     hash [--preset {bitwarden|owasp}]  Generate an Argon2id PHC ADMIN_TOKEN
     backup                             Create a backup of the SQLite database
                                        You can also send the USR1 signal to trigger a backup
+    healthcheck [-e, --endpoint <URL>]    Perform a healthcheck by querying the /alive endpoint
+                                          Default: http://localhost:80
 
 PRESETS:                  m=         t=          p=
     bitwarden (default) 64MiB, 3 Iterations, 4 Threads
@@ -116,7 +118,7 @@ PRESETS:                  m=         t=          p=
 
 pub const VERSION: Option<&str> = option_env!("VW_VERSION");
 
-fn parse_args() {
+async fn parse_args() {
     let mut pargs = pico_args::Arguments::from_env();
     let version = VERSION.unwrap_or("(Version info from Git not present)");
 
@@ -196,6 +198,13 @@ fn parse_args() {
                     println!("Backup failed. {e:?}");
                     exit(1);
                 }
+            }
+        } else if command == "healthcheck" {
+            let endpoint: Option<String> = pargs.opt_value_from_str(["-e", "--endpoint"]).unwrap_or_default();
+
+            match perform_healthcheck(endpoint).await {
+                Ok(_) => exit(0),
+                Err(_) => exit(1),
             }
         }
         exit(0);
@@ -491,6 +500,42 @@ async fn check_data_folder() {
             ########################################################################################\n"
         );
         exit(1);
+    }
+}
+
+async fn perform_healthcheck(custom_endpoint: Option<String>) -> Result<(), Error> {
+    // Use custom endpoint if provided, otherwise construct default from environment or use localhost
+    let healthcheck_url = if let Some(endpoint) = custom_endpoint {
+        // If custom endpoint is provided, ensure it has the /alive path
+        let base = endpoint.trim_end_matches('/');
+        if base.ends_with("/alive") {
+            base.to_string()
+        } else {
+            format!("{}/alive", base)
+        }
+    } else {
+        // Default behavior: use localhost with port from ROCKET_PORT or default to 80
+        let rocket_port = std::env::var("ROCKET_PORT").unwrap_or_else(|_| "80".to_string());
+        format!("http://localhost:{}/alive", rocket_port)
+    };
+
+    // Perform the healthcheck request with timeout
+    let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(5)).build()?;
+
+    match client.get(&healthcheck_url).send().await {
+        Ok(response) => {
+            if response.status().is_success() {
+                info!("Healthcheck to {} successful: {}", healthcheck_url, response.status());
+                Ok(())
+            } else {
+                error!("Healthcheck to {} failed with status: {}", healthcheck_url, response.status());
+                Err(format!("HTTP {}", response.status()).into())
+            }
+        }
+        Err(e) => {
+            error!("Healthcheck to {} failed: {}", healthcheck_url, e);
+            Err(e.into())
+        }
     }
 }
 
