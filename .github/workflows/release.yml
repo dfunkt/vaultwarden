@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - main-upstream
 
     tags:
       # https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
@@ -36,7 +37,7 @@ env:
 jobs:
   docker-build:
     name: Build Vaultwarden containers
-    if: ${{ github.repository == 'dani-garcia/vaultwarden' }}
+#    if: ${{ github.repository == 'dani-garcia/vaultwarden' }}
     permissions:
       packages: write # Needed to upload packages and artifacts
       contents: read
@@ -62,12 +63,8 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
         # https://github.com/moby/buildkit/issues/3969
-        # Also set max parallelism to 2, the default of 4 breaks GitHub Actions and causes OOMKills
         with:
           cache-binary: false
-          buildkitd-config-inline: |
-            [worker.oci]
-              max-parallelism = 2
           driver-opts: |
             network=host
 
@@ -314,13 +311,18 @@ jobs:
       - name: Determine Base Tags
         env:
           BASE_IMAGE_TAG: "${{ matrix.base_image != 'debian' && format('-{0}', matrix.base_image) || '' }}"
+          REF_NAME: ${{ github.ref_name }}
           REF_TYPE: ${{ github.ref_type }}
         run: |
           # Check which main tag we are going to build determined by ref_type
           if [[ "${REF_TYPE}" == "tag" ]]; then
             echo "BASE_TAGS=latest${BASE_IMAGE_TAG},${GITHUB_REF#refs/*/}${BASE_IMAGE_TAG}${BASE_IMAGE_TAG//-/,}" | tee -a "${GITHUB_ENV}"
           elif [[ "${REF_TYPE}" == "branch" ]]; then
-            echo "BASE_TAGS=testing${BASE_IMAGE_TAG}" | tee -a "${GITHUB_ENV}"
+            if [[ "${REF_NAME}" == "main-upstream" ]]; then
+              echo "BASE_TAGS=latest${BASE_IMAGE_TAG}" | tee -a "${GITHUB_ENV}"
+            else
+              echo "BASE_TAGS=testing${BASE_IMAGE_TAG}" | tee -a "${GITHUB_ENV}"
+            fi
           fi
 
       - name: Create manifest list, push it and extract digest SHA
