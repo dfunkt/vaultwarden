@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - main-upstream
 
     tags:
       # https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
@@ -32,7 +33,7 @@ env:
 jobs:
   docker-build:
     name: Build Vaultwarden containers
-    if: ${{ github.repository == 'dani-garcia/vaultwarden' }}
+#    if: ${{ github.repository == 'dani-garcia/vaultwarden' }}
     permissions:
       packages: write # Needed to upload packages and artifacts
       contents: read
@@ -66,12 +67,8 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
         # https://github.com/moby/buildkit/issues/3969
-        # Also set max parallelism to 2, the default of 4 breaks GitHub Actions and causes OOMKills
         with:
           cache-binary: false
-          buildkitd-config-inline: |
-            [worker.oci]
-              max-parallelism = 2
           driver-opts: |
             network=host
 
@@ -104,7 +101,7 @@ jobs:
           if [[ "${REF_TYPE}" == "tag" ]]; then
             echo "BASE_TAGS=latest,${GITHUB_REF#refs/*/}" | tee -a "${GITHUB_OUTPUT}"
           elif [[ "${REF_TYPE}" == "branch" ]]; then
-            echo "BASE_TAGS=testing" | tee -a "${GITHUB_OUTPUT}"
+            echo "BASE_TAGS=testing-arch" | tee -a "${GITHUB_OUTPUT}"
           fi
 
           # Get the Source Version for this release
@@ -263,7 +260,7 @@ jobs:
           if [[ "${REF_TYPE}" == "tag" ]]; then
             EXTRACT_TAG="latest"
           elif [[ "${REF_TYPE}" == "branch" ]]; then
-            EXTRACT_TAG="testing"
+            EXTRACT_TAG="testing-arch"
           fi
 
           # Check which base_image was used and append -alpine if needed
@@ -395,7 +392,7 @@ jobs:
           set -e
 
           # Extract digest SHA for subsequent steps
-          GET_DIGEST_SHA="$(echo $OUTPUT | grep -oE 'sha256:[a-f0-9]{64}' | head -1)"
+          GET_DIGEST_SHA="$(echo $OUTPUT | grep -oE 'sha256:[a-f0-9]{64}' | tail -1)"
           echo "DIGEST_SHA=${GET_DIGEST_SHA}" | tee -a "${GITHUB_ENV}"
 
       # Attest container images
