@@ -19,15 +19,15 @@
 # - From https://github.com/dfunkt/bw_web_builds/tags,
 #   click the tag name to view the digest of the image it currently points to.
 # - From the command line:
-#     $ docker pull ghcr.io/dfunkt/bw_web_builds:v2025.11.0
-#     $ docker image inspect --format "{{.RepoDigests}}" ghcr.io/dfunkt/bw_web_builds:v2025.11.0
-#     [ghcr.io/dfunkt/bw_web_builds@sha256:9775adf3c2a7831a1a1f67da8f024379a662a86300cef03547cc4d74b2e6026e]
+#     $ docker pull ghcr.io/dfunkt/bw_web_builds:v2025.11.3
+#     $ docker image inspect --format "{{.RepoDigests}}" ghcr.io/dfunkt/bw_web_builds:v2025.11.3
+#     [ghcr.io/dfunkt/bw_web_builds@sha256:fc43fcdd1f3680c196fc20ee1770d2585a1328728f753bbd5a779dbec6250c2b]
 #
 # - Conversely, to get the tag name from the digest:
-#     $ docker image inspect --format "{{.RepoTags}}" ghcr.io/dfunkt/bw_web_builds@sha256:9775adf3c2a7831a1a1f67da8f024379a662a86300cef03547cc4d74b2e6026e
-#     [ghcr.io/dfunkt/bw_web_builds:v2025.11.0]
+#     $ docker image inspect --format "{{.RepoTags}}" ghcr.io/dfunkt/bw_web_builds@sha256:fc43fcdd1f3680c196fc20ee1770d2585a1328728f753bbd5a779dbec6250c2b
+#     [ghcr.io/dfunkt/bw_web_builds:v2025.11.3]
 #
-FROM --platform=linux/amd64 ghcr.io/dfunkt/bw_web_builds@sha256:9775adf3c2a7831a1a1f67da8f024379a662a86300cef03547cc4d74b2e6026e AS vault
+FROM --platform=linux/amd64 ghcr.io/dfunkt/bw_web_builds@sha256:fc43fcdd1f3680c196fc20ee1770d2585a1328728f753bbd5a779dbec6250c2b AS vault
 
 ########################## ALPINE BUILD IMAGES ##########################
 ## NOTE: The Alpine Base Images do not support other platforms then linux/amd64 and linux/arm64
