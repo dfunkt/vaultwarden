@@ -58,8 +58,6 @@ jobs:
       matrix:
         arch: ["amd64", "arm64"]
         base_image: ${{ fromJSON(vars.BASE_IMAGE) }}
-    outputs:
-      base-tags: ${{ steps.determine-version.outputs.BASE_TAGS }}
 
     steps:
       - name: Initialize QEMU binfmt support
@@ -97,24 +95,9 @@ jobs:
           NORMALIZED_ARCH="${MATRIX_ARCH//\/}"
           echo "NORMALIZED_ARCH=${NORMALIZED_ARCH}" | tee -a "${GITHUB_ENV}"
 
-      # Determine Base Tags and Source Version
-      - name: Determine Base Tags and Source Version
-        id: determine-version
-        env:
-          REF_NAME: ${{ github.ref_name }}
-          REF_TYPE: ${{ github.ref_type }}
+      # Determine Source Version
+      - name: Determine Source Version
         run: |
-          # Check which main tag we are going to build determined by ref_type
-          if [[ "${REF_TYPE}" == "tag" ]]; then
-            echo "BASE_TAGS=latest,${GITHUB_REF#refs/*/}" | tee -a "${GITHUB_OUTPUT}"
-          elif [[ "${REF_TYPE}" == "branch" ]]; then
-            if [[ "${REF_NAME}" == "main-upstream" ]]; then
-              echo "BASE_TAGS=latest" | tee -a "${GITHUB_OUTPUT}"
-            else
-              echo "BASE_TAGS=testing" | tee -a "${GITHUB_OUTPUT}"
-            fi
-          fi
-
           # Get the Source Version for this release
           GIT_EXACT_TAG="$(git describe --tags --abbrev=0 --exact-match 2>/dev/null || true)"
           if [[ -n "${GIT_EXACT_TAG}" ]]; then
@@ -123,7 +106,7 @@ jobs:
               GIT_LAST_TAG="$(git describe --tags --abbrev=0)"
               echo "SOURCE_VERSION=${GIT_LAST_TAG}-${SOURCE_COMMIT:0:8}" | tee -a "${GITHUB_ENV}"
           fi
-      # End Determine Base Tags
+      # End Determine Source Version
 
       # Login to Docker Hub
       - name: Login to Docker Hub
@@ -212,7 +195,6 @@ jobs:
         id: bake_vw
         uses: docker/bake-action@5be5f02ff8819ecd3092ea6b2e6261c31774f2b4 # v6.10.0
         env:
-          BASE_TAGS: "${{ steps.determine-version.outputs.BASE_TAGS }}"
           SOURCE_COMMIT: "${{ env.SOURCE_COMMIT }}"
           SOURCE_VERSION: "${{ env.SOURCE_VERSION }}"
           SOURCE_REPOSITORY_URL: "${{ env.SOURCE_REPOSITORY_URL }}"
@@ -300,9 +282,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: docker-build
 
-    env:
-      BASE_TAGS: ${{ needs.docker-build.outputs.base-tags }}
-
     permissions:
       packages: write # Needed to upload packages and artifacts
       attestations: write # Needed to generate an artifact attestation for a build
@@ -366,6 +345,23 @@ jobs:
           QUAY_REPO: ${{ vars.QUAY_REPO }}
         run: |
           echo "CONTAINER_REGISTRIES=${CONTAINER_REGISTRIES:+${CONTAINER_REGISTRIES},}${QUAY_REPO}" | tee -a "${GITHUB_ENV}"
+
+      # Determine Base Tags and Source Version
+      - name: Determine Base Tags and Source Version
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          # Check which main tag we are going to build determined by ref_type
+          if [[ "${REF_TYPE}" == "tag" ]]; then
+            echo "BASE_TAGS=latest,${GITHUB_REF#refs/*/}" | tee -a "${GITHUB_ENV}"
+          elif [[ "${REF_TYPE}" == "branch" ]]; then
+            if [[ "${REF_NAME}" == "main-upstream" ]]; then
+              echo "BASE_TAGS=latest" | tee -a "${GITHUB_ENV}"
+            else
+              echo "BASE_TAGS=testing" | tee -a "${GITHUB_ENV}"
+            fi
+          fi
 
       - name: Create manifest list, push it and extract digest SHA
         working-directory: ${{ runner.temp }}/digests
