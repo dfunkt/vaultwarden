@@ -47,7 +47,7 @@ FROM --platform=$BUILDPLATFORM {{ build_stage_image[base].arch_image[arch] }} AS
 # hadolint ignore=DL3006
 FROM --platform=$BUILDPLATFORM {{ build_stage_image[base].image }} AS build
 {% if base == "debian" %}
-COPY --from=xx / /
+COPY --link --from=xx / /
 {% endif %}
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -95,8 +95,8 @@ RUN USER=root cargo new --bin /app
 WORKDIR /app
 
 # Copies over *only* your manifests and build files
-COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
-COPY ./macros ./macros
+COPY --link ./Cargo.* ./rust-toolchain.toml ./build.rs ./
+COPY --link ./macros ./macros
 
 # Fetch dependencies only for the build platform, others will be cross-compiled
 RUN cargo fetch
