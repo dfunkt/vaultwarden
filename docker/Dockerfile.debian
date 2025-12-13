@@ -49,14 +49,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     CARGO_HOME="/root/.cargo" \
     USER="root"
 
-# Force the install of an older MariaDB library to prevent a Diesel panic
-# See https://github.com/dani-garcia/vaultwarden/issues/6416
-RUN echo "deb http://snapshot.debian.org/archive/debian/20250707T084701Z/ trixie main" > /etc/apt/sources.list.d/snapshot.list && \
-    echo "Acquire::Check-Valid-Until false;" > etc/apt/apt.conf.d/AllowSnapshot && \
-    echo 'Package: libmariadb libmariadb3 libmariadb-dev mariadb*' > /etc/apt/preferences.d/mariadb-snapshot && \
-    echo 'Pin: origin "snapshot.debian.org"' >> /etc/apt/preferences.d/mariadb-snapshot && \
-    echo 'Pin-Priority: 1001' >> /etc/apt/preferences.d/mariadb-snapshot
-
 # Install clang to get `xx-cargo` working
 # Install pkg-config to allow amd64 builds to find all libraries
 # Install git so build.rs can determine the correct version
@@ -86,8 +78,18 @@ ARG TARGETARCH
 ARG TARGETVARIANT
 ARG TARGETPLATFORM
 
-# Install the libc cross packages based upon the debian-arch
-RUN apt-get update && \
+# Run xx-cargo early, since it sometimes seems to break when run at a later stage
+RUN echo "export CARGO_TARGET=$(xx-cargo --print-target-triple)" >> /env-cargo && \
+    # Force the install of an older MariaDB library to prevent a Diesel panic
+    # See https://github.com/dani-garcia/vaultwarden/issues/6416
+    echo "deb http://snapshot.debian.org/archive/debian/20250707T084701Z/ trixie main" > /etc/apt/sources.list.d/snapshot.list && \
+    echo "Acquire::Check-Valid-Until false;" > /etc/apt/apt.conf.d/AllowSnapshot && \
+    echo 'Package: libmariadb libmariadb3 libmariadb-dev mariadb*' > /etc/apt/preferences.d/mariadb-snapshot && \
+    echo 'Pin: origin "snapshot.debian.org"' >> /etc/apt/preferences.d/mariadb-snapshot && \
+    echo 'Pin-Priority: 1001' >> /etc/apt/preferences.d/mariadb-snapshot && \
+    # Continue with normal install
+    # Install the libc cross packages based upon the debian-arch
+    apt-get update && \
     xx-apt-get install -y \
         --no-install-recommends \
         libpq-dev \
@@ -96,10 +98,7 @@ RUN apt-get update && \
         libmariadb-dev \
         pkg-config \
         zlib1g-dev \
-        xx-c-essentials && \
-    # Run xx-cargo early, since it sometimes seems to break when run at a later stage
-    echo "export CARGO_TARGET=$(xx-cargo --print-target-triple)" >> /env-cargo
-
+        xx-c-essentials
 
 # Set target CPU to the specified x86-64 microarchitecture level (if present)
 RUN source /env-cargo && \
@@ -166,7 +165,7 @@ RUN mkdir /data && \
     # Force the install of an older MariaDB library to prevent a Diesel panic
     # See https://github.com/dani-garcia/vaultwarden/issues/6416
     echo "deb http://snapshot.debian.org/archive/debian/20250707T084701Z/ trixie main" > /etc/apt/sources.list.d/snapshot.list && \
-    echo "Acquire::Check-Valid-Until false;" > etc/apt/apt.conf.d/AllowSnapshot && \
+    echo "Acquire::Check-Valid-Until false;" > /etc/apt/apt.conf.d/AllowSnapshot && \
     echo 'Package: libmariadb libmariadb3 libmariadb-dev mariadb*' > /etc/apt/preferences.d/mariadb-snapshot && \
     echo 'Pin: origin "snapshot.debian.org"' >> /etc/apt/preferences.d/mariadb-snapshot && \
     echo 'Pin-Priority: 1001' >> /etc/apt/preferences.d/mariadb-snapshot && \
