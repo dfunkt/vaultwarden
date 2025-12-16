@@ -1,8 +1,8 @@
+use aws_lc_rs::digest::{digest, Digest, SHA512_256};
 use chrono::Utc;
 use data_encoding::HEXLOWER;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use reqwest::{header, StatusCode};
-use ring::digest::{digest, Digest, SHA512_256};
 use serde::Serialize;
 use std::collections::HashMap;
 

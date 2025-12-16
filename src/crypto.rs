@@ -3,8 +3,8 @@
 //
 use std::num::NonZeroU32;
 
+use aws_lc_rs::{digest, hmac, pbkdf2};
 use data_encoding::{Encoding, HEXLOWER};
-use ring::{digest, hmac, pbkdf2};
 
 const DIGEST_ALG: pbkdf2::Algorithm = pbkdf2::PBKDF2_HMAC_SHA256;
 const OUTPUT_LEN: usize = digest::SHA256_OUTPUT_LEN;
@@ -39,7 +39,7 @@ pub fn hmac_sign(key: &str, data: &str) -> String {
 
 /// Return an array holding `N` random bytes.
 pub fn get_random_bytes<const N: usize>() -> [u8; N] {
-    use ring::rand::{SecureRandom, SystemRandom};
+    use aws_lc_rs::rand::{SecureRandom, SystemRandom};
 
     let mut array = [0; N];
     SystemRandom::new().fill(&mut array).expect("Error generating random values");
