@@ -194,6 +194,7 @@ jobs:
           SOURCE_REPOSITORY_URL: "${{ env.SOURCE_REPOSITORY_URL }}"
         with:
           pull: true
+          sbom: true
           source: .
           files: docker/docker-bake.hcl
           targets: "${{ matrix.base_image }}-multi"
@@ -230,23 +231,32 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      - name: Rename binaries to match target platform
+      - name: Rename artifacts to match target platform
         env:
           NORMALIZED_ARCH: ${{ env.NORMALIZED_ARCH }}
         run: |
+          mv ./output/sbom.spdx.json vaultwarden-sbom-"${NORMALIZED_ARCH}".spdx.json
           mv ./output/vaultwarden vaultwarden-"${NORMALIZED_ARCH}"
 
       # Upload artifacts to Github Actions and Attest the binaries
       - name: Attest binaries
         uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
         with:
-          subject-path: vaultwarden-${{ env.NORMALIZED_ARCH }}
+          subject-path: |
+            vaultwarden-${{ env.NORMALIZED_ARCH }}
+            vaultwarden-sbom-${{ env.NORMALIZED_ARCH }}.spdx.json
 
       - name: Upload binaries as artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: vaultwarden-${{ env.SOURCE_VERSION }}-linux-${{ env.NORMALIZED_ARCH }}-${{ matrix.base_image }}
           path: vaultwarden-${{ env.NORMALIZED_ARCH }}
+
+      - name: Upload SBOM as artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vaultwarden-sbom-${{ env.SOURCE_VERSION }}-linux-${{ env.NORMALIZED_ARCH }}-${{ matrix.base_image }}
+          path: vaultwarden-sbom-${{ env.NORMALIZED_ARCH }}.spdx.json
 
   merge-manifests:
     name: Merge manifests
