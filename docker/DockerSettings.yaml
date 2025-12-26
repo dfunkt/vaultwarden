@@ -1,10 +1,10 @@
 ---
 vault_version: "v2025.12.1"
 vault_image_digest: "sha256:b6d1e01570a7cf7bd552dad1415cf2040cfaa3391df73307fab5bb0c01ba2ffa"
-# Cross Compile Docker Helper Scripts v1.8.0
+# Cross Compile Docker Helper Scripts v1.9.0
 # We use the linux/amd64 platform shell scripts since there is no difference between the different platform scripts
-# https://github.com/dfunkt/xx
-xx_image_digest: "sha256:c5e36f35265699b44f471219e02850c87cf9210283d640c065343224776f2b7f"
+# https://github.com/tonistiigi/xx | https://hub.docker.com/r/tonistiigi/xx/tags
+xx_image_digest: "sha256:c64defb9ed5a91eacb37f96ccc3d4cd72521c4bd18d5442905b95e2226b0e707"
 rust_version: 1.92.0 # Rust version to be used
 debian_version: trixie # Debian release name to be used
 alpine_version: "3.23" # Alpine version to be used
