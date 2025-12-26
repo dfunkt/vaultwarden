@@ -50,7 +50,7 @@ jobs:
       SOURCE_REPOSITORY_URL: "https://github.com/${{ github.repository }}"
     strategy:
       matrix:
-        arch: ["amd64", "arm64"]
+        arch: ["amd64", "arm64", "arm/v7"]
         base_image: ${{ fromJSON(vars.BASE_IMAGE) }}
 
     steps:
