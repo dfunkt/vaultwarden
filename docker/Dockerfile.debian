@@ -80,6 +80,8 @@ RUN mkdir -pv "${CARGO_HOME}" && \
 RUN USER=root cargo new --bin /app
 WORKDIR /app
 
+RUN source /env-cargo && \
+    rustup target add "${CARGO_TARGET}"
 
 # Copies over *only* your manifests and build files
 COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./

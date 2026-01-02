@@ -110,9 +110,9 @@ RUN echo "export CARGO_TARGET=${RUST_MUSL_CROSS_TARGET}" >> /env-cargo && \
     # Output the current contents of the file
     cat /env-cargo
 
+{% endif %}
 RUN source /env-cargo && \
     rustup target add "${CARGO_TARGET}"
-{% endif %}
 
 # Copies over *only* your manifests and build files
 COPY ./Cargo.* ./rust-toolchain.toml ./build.rs ./
