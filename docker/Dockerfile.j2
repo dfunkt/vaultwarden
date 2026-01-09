@@ -19,13 +19,13 @@
 # - From https://github.com/dfunkt/bw_web_builds/tags,
 #   click the tag name to view the digest of the image it currently points to.
 # - From the command line:
-#     $ docker pull ghcr.io/dfunkt/bw_web_builds:{{ vault_version }}
-#     $ docker image inspect --format "{{ '{{' }}.RepoDigests}}" ghcr.io/dfunkt/bw_web_builds:{{ vault_version }}
-#     [ghcr.io/dfunkt/bw_web_builds@{{ vault_image_digest }}]
+#     $ docker pull docker.io/vaultwarden/web-vault:{{ vault_version | replace('+', '_') }}
+#     $ docker image inspect --format "{{ '{{' }}.RepoDigests}}" ghcr.io/dfunkt/bw_web_builds:{{ vault_version | replace('+', '_') }}
+#     [docker.io/vaultwarden/web-vault@{{ vault_image_digest }}]
 #
 # - Conversely, to get the tag name from the digest:
 #     $ docker image inspect --format "{{ '{{' }}.RepoTags}}" ghcr.io/dfunkt/bw_web_builds@{{ vault_image_digest }}
-#     [ghcr.io/dfunkt/bw_web_builds:{{ vault_version }}]
+#     [docker.io/vaultwarden/web-vault:{{ vault_version | replace('+', '_') }}]
 #
 {% macro xx_cargo_config() -%}
 # Workaround for xx related build issues
