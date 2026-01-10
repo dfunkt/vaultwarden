@@ -85,11 +85,11 @@ jobs:
 
       # Checkout the repo
       - name: Checkout
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 #v6.0.0
-        # We need fetch-depth of 0 so we also get all the tag metadata
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        # We need fetch-tags so we also get all the tag metadata
         with:
           persist-credentials: false
-          fetch-depth: 0
+          fetch-tags: true
 
       # Normalize the architecture string for use in paths and cache keys
       - name: Normalize architecture string
