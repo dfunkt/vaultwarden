@@ -49,9 +49,18 @@ jobs:
         run: |
           # Check which main tag we are going to build determined by ref_type
           if [[ "${REF_TYPE}" == "tag" ]]; then
-            echo "BASE_TAGS=latest,${GITHUB_REF#refs/*/}" | tee -a "${GITHUB_OUTPUT}"
+            {
+              echo "BASE_TAGS<<EOF"
+              echo "type=raw,value=latest"
+              echo "type=raw,value=${GITHUB_REF#refs/*/}"
+              echo "EOF"
+            } | tee -a "${GITHUB_OUTPUT}"
           elif [[ "${REF_TYPE}" == "branch" ]]; then
-            echo "BASE_TAGS=testing" | tee -a "${GITHUB_OUTPUT}"
+            {
+              echo "BASE_TAGS<<EOF"
+              echo "type=raw,value=testing"
+              echo "EOF"
+            } | tee -a "${GITHUB_OUTPUT}"
           fi
 
           # Get the Source Version for this release
@@ -82,15 +91,16 @@ jobs:
       files: docker/docker-bake.hcl
       target: "${{ matrix.base_image }}-multi"
       vars: |
-        BASE_TAGS="${{ needs.determine-version.outputs.BASE_TAGS }}"
         SOURCE_COMMIT="${{ github.sha }}"
-        SOURCE_VERSION="${{ needs.determine-version.outputs.SOURCE_VERSION }}"
+        SOURCE_VERSION="${{ needs.determine-version.outputs.source-version }}"
         SOURCE_REPOSITORY_URL="https://github.com/${{ github.repository }}"
-      set: |
-        *.cache-from=type=registry,ref=ghcr.io/dfunkt/vaultwarden-buildcache:${{ matrix.base_image }}
-        *.cache-to=type=registry,ref=ghcr.io/dfunkt/vaultwarden-buildcache:${{ matrix.base_image }},compression=zstd,mode=max
       meta-images: |
         ghcr.io/dfunkt/vaultwarden
+      meta-tags: |
+        ${{ needs.determine-version.outputs.base-tags }}
+        type=raw,value=${{ matrix.base_image }},suffix=,enable=${{ github.ref_type == 'tag' && matrix.base_image != 'debian' }}
+      meta-flavor: |
+        suffix=${{ matrix.base_image != 'debian' && format('-{0}', matrix.base_image) || '' }}
     secrets:
       registry-auths: |
         - registry: ghcr.io
