@@ -48,6 +48,11 @@ variable "CONTAINER_REGISTRIES" {
   default = "vaultwarden/server"
 }
 
+// Platforms to build for multi-platform targets
+variable "PLATFORMS" {
+  default = ["linux/amd64", "linux/arm64"]
+}
+
 
 // ==== Baking Groups ====
 
@@ -95,9 +100,17 @@ target "debian" {
 // This is mainly used by GitHub Actions to build and push new containers
 target "debian-multi" {
   inherits = ["debian"]
-  platforms = ["linux/amd64", "linux/arm64", "linux/arm/v7", "linux/arm/v6"]
+  platforms = PLATFORMS
   tags = generate_tags("", "")
   output = [join(",", flatten([["type=registry"], image_index_annotations()]))]
+}
+
+target "debian-binaries" {
+  inherits = ["debian"]
+  platforms = PLATFORMS
+  tags = generate_tags("", "")
+  target = "binaries"
+  output = ["./output"]
 }
 
 // Per platform targets, to individually test building per platform locally
@@ -170,9 +183,17 @@ target "alpine" {
 // This is mainly used by GitHub Actions to build and push new containers
 target "alpine-multi" {
   inherits = ["alpine"]
-  platforms = ["linux/amd64", "linux/arm64", "linux/arm/v7", "linux/arm/v6"]
+  platforms = PLATFORMS
   tags = generate_tags("-alpine", "")
   output = [join(",", flatten([["type=registry"], image_index_annotations()]))]
+}
+
+target "alpine-binaries" {
+  inherits = ["alpine"]
+  platforms = PLATFORMS
+  tags = generate_tags("", "")
+  target = "binaries"
+  output = ["./output"]
 }
 
 // Per platform targets, to individually test building per platform locally
@@ -221,9 +242,17 @@ target "scratch" {
 // This is mainly used by GitHub Actions to build and push new containers
 target "scratch-multi" {
   inherits = ["scratch"]
-  platforms = ["linux/amd64", "linux/arm64", "linux/arm/v7", "linux/arm/v6"]
+  platforms = PLATFORMS
   tags = generate_tags("-scratch", "")
   output = [join(",", flatten([["type=registry"], image_index_annotations()]))]
+}
+
+target "scratch-binaries" {
+  inherits = ["scratch"]
+  platforms = PLATFORMS
+  tags = generate_tags("", "")
+  target = "binaries"
+  output = ["./output"]
 }
 
 // Per platform targets, to individually test building per platform locally
@@ -308,6 +337,8 @@ function "image_index_annotations" {
   params = []
   result = flatten([
     for key, value in labels() :
-      value != null ? formatlist("annotation-index.%s=%s", "${key}", "${value}") : []
+      value != null ? [
+        format("annotation-index.%s=%s", key, urlencode(value))
+      ] : []
   ])
 }

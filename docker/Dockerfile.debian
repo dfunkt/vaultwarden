@@ -122,7 +122,9 @@ ARG VW_VERSION
 RUN source /env-cargo && \
     # Make sure that we actually build the project by updating the src/main.rs timestamp
     # Also do this for build.rs to ensure the version is rechecked
-    touch build.rs src/main.rs && \
+     if [[ "${SKIP_REBUILD}" != "true" ]] ; then \
+        touch build.rs src/main.rs ; \
+    fi && \
     # Create a symlink to the binary target folder to easy copy the binary in the final stage
     # Workaround for xx related build issues
     # https://github.com/tonistiigi/xx/pull/108#issuecomment-3700635977
@@ -133,6 +135,8 @@ RUN source /env-cargo && \
         ln -vfsr "/app/target/${CARGO_TARGET}/${CARGO_PROFILE}" /app/target/final ; \
     fi
 
+FROM scratch AS binaries
+COPY --link --from=build /app/target/final/vaultwarden /
 
 ######################## RUNTIME IMAGE  ########################
 # Create a new stage with a minimal image
