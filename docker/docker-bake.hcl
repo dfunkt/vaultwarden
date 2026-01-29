@@ -307,6 +307,8 @@ function "image_index_annotations" {
   params = []
   result = flatten([
     for key, value in labels() :
-      value != null ? formatlist("annotation-index.%s=%s", "${key}", "${value}") : []
+      value != null ? [
+        format("annotation-index.%s=%s", key, urlencode(value))
+      ] : []
   ])
 }
