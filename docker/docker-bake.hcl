@@ -232,8 +232,9 @@ group "alpine-all" {
 // Default Scratch target, will build a container using the hosts platform architecture
 target "scratch" {
   inherits = ["_default_attributes"]
-  dockerfile = "docker/Dockerfile.scratch"
+  dockerfile = "docker/Dockerfile.alpine"
   tags = generate_tags("-scratch", platform_tag())
+  target = "minimal"
   output = ["type=docker"]
 }
 

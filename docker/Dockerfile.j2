@@ -39,7 +39,7 @@ FROM --platform=linux/amd64 ghcr.io/dfunkt/bw_web_builds@{{ vault_image_digest }
 ## We use the linux/amd64 no matter which Build Platform, since these are all bash scripts
 ## And these bash scripts do not have any significant difference if at all
 FROM --platform=linux/amd64 docker.io/tonistiigi/xx@{{ xx_image_digest }} AS xx
-{% elif base in ["alpine", "scratch"] %}
+{% elif base == "alpine" %}
 ########################## ALPINE BUILD IMAGES ##########################
 ## NOTE: The Alpine Base Images do not support other platforms then linux/amd64 and linux/arm64
 ## And for Alpine we define all build images here, they will only be loaded when actually used
@@ -64,7 +64,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     TERM=xterm-256color \
     CARGO_HOME="/root/.cargo" \
     USER="root"
-{%- if base in ["alpine", "scratch"] %} \
+{%- if base == "alpine" %} \
     # Use PostgreSQL v17 during Alpine/MUSL builds instead of the default v16
     # Debian Trixie uses libpq v17
     PQ_LIB_DIR="/usr/local/musl/pq17/lib"
@@ -116,7 +116,7 @@ RUN apt-get update && \
     echo "export CARGO_TARGET=$(xx-cargo --print-target-triple)" >> /env-cargo
 {% endif %}
 
-{% if base in ["alpine", "scratch"] %}
+{% if base == "alpine" %}
 # Environment variables for Cargo on Alpine based builds
 RUN echo "export CARGO_TARGET=${RUST_MUSL_CROSS_TARGET}" >> /env-cargo && \
     # Output the current contents of the file
@@ -136,7 +136,7 @@ ARG CARGO_PROFILE=release
 # Configure the DB ARG as late as possible to not invalidate the cached layers above
 {% if base == "debian" %}
 ARG DB=sqlite,mysql,postgresql
-{% elif base in ["alpine", "scratch"] %}
+{% elif base == "alpine" %}
 # Enable MiMalloc to improve performance on Alpine builds
 ARG DB=sqlite,mysql,postgresql,enable_mimalloc
 {% endif %}
@@ -147,7 +147,7 @@ ARG DB=sqlite,mysql,postgresql,enable_mimalloc
 RUN source /env-cargo && \
 {% if base == "debian" %}
     {{ xx_cargo_config() }} && \
-{% elif base in ["alpine", "scratch"] %}
+{% elif base == "alpine" %}
     cargo build --features ${DB} --profile "${CARGO_PROFILE}" --target="${CARGO_TARGET}" && \
 {% endif %}
     find . -not -path "./target*" -delete
@@ -168,7 +168,7 @@ RUN source /env-cargo && \
     # Create a symlink to the binary target folder to easy copy the binary in the final stage
 {% if base == "debian" %}
     {{ xx_cargo_config() }} && \
-{% elif base in ["alpine", "scratch"] %}
+{% elif base == "alpine" %}
     cargo build --features ${DB} --profile "${CARGO_PROFILE}" --target="${CARGO_TARGET}" && \
 {% endif %}
     if [[ "${CARGO_PROFILE}" == "dev" ]] ; then \
@@ -196,6 +196,28 @@ COPY --link --from=build /app/target/final/vaultwarden /
 # To uninstall: docker run --privileged --rm tonistiigi/binfmt --uninstall 'qemu-*'
 #
 # We need to add `--platform` here, because of a podman bug: https://github.com/containers/buildah/issues/4742
+{% if base == "alpine" %}
+FROM --platform=$TARGETPLATFORM scratch AS minimal
+
+ENV ROCKET_PROFILE="release" \
+    ROCKET_ADDRESS=0.0.0.0 \
+    ROCKET_PORT=80 \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+
+VOLUME /data
+EXPOSE 80
+
+# Copies the files from the context (Rocket.toml file and web-vault)
+# and the binary from the "build" stage to the current stage
+WORKDIR /
+
+COPY --link --from=vault /web-vault ./web-vault
+COPY --link --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --link --from=build /app/target/final/vaultwarden .
+
+ENTRYPOINT ["/vaultwarden"]
+{%- endif %}
+
 FROM --platform=$TARGETPLATFORM {{ runtime_stage_image[base] }}
 
 ENV ROCKET_PROFILE="release" \
@@ -205,14 +227,10 @@ ENV ROCKET_PROFILE="release" \
     DEBIAN_FRONTEND=noninteractive
 {% elif base == "alpine" %} \
     SSL_CERT_DIR=/etc/ssl/certs
-{% elif base == "scratch" %} \
-    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 {%- endif %}
 
-{% if base == "debian" or base == "alpine" %}
 # Create data folder and Install needed libraries
 RUN mkdir /data && \
-{% endif %}
 {% if base == "debian" %}
     apt-get update && apt-get install -y \
         --no-install-recommends \

@@ -58,8 +58,9 @@ jobs:
     needs:
       - determine-version
     strategy:
+      max-parallel: 2
       matrix:
-        base_image: ["debian", "scratch"]
+        base_image: ["debian", "alpine", "scratch"]
     permissions:
       contents: read # to fetch the repository content
       id-token: write # for signing attestation(s) with GitHub OIDC Token
@@ -70,7 +71,7 @@ jobs:
         *.pull=true
       cache: true
       cache-mode: max
-      cache-scope: bin-${{ matrix.base_image }}
+      cache-scope: ${{ matrix.base_image == 'scratch' && 'bin-alpine' || format('bin-{0}', matrix.base_image) }}
       artifact-name: vaultwarden-binaries-${{ needs.determine-version.outputs.source-version }}-linux-${{ matrix.base_image }}
       artifact-upload: true
       output: local
@@ -89,7 +90,7 @@ jobs:
       - binaries
     strategy:
       matrix:
-        base_image: ["debian", "scratch"]
+        base_image: ["debian", "alpine", "scratch"]
     permissions:
       contents: read # to fetch the repository content
       id-token: write # for signing attestation(s) with GitHub OIDC Token
@@ -101,7 +102,7 @@ jobs:
         *.pull=true
       cache: true
       cache-mode: max
-      cache-scope: bin-${{ matrix.base_image }}
+      cache-scope: ${{ matrix.base_image == 'scratch' && 'bin-alpine' || format('bin-{0}', matrix.base_image) }}
       output: image
       push: true
       files: docker/docker-bake.hcl
