@@ -1,6 +1,6 @@
 [workspace.package]
 edition = "2021"
-rust-version = "1.90.0"
+rust-version = "1.91.0"
 license = "AGPL-3.0-only"
 repository = "https://github.com/dani-garcia/vaultwarden"
 publish = false
