@@ -67,6 +67,7 @@ jobs:
       set: |
         *.args.VW_VERSION=${{ needs.determine-version.outputs.source-version }}
         *.args.SKIP_REBUILD=true
+        *.pull=true
       cache: true
       cache-mode: max
       cache-scope: bin-${{ matrix.base_image }}
@@ -97,6 +98,7 @@ jobs:
       set: |
         *.args.VW_VERSION=${{ needs.determine-version.outputs.source-version }}
         *.args.SKIP_REBUILD=true
+        *.pull=true
       cache: true
       cache-mode: max
       cache-scope: bin-${{ matrix.base_image }}
