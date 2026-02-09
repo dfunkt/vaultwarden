@@ -117,6 +117,10 @@ RUN source /env-cargo && \
 COPY . .
 
 ARG VW_VERSION
+ARG GIT_EXACT_TAG
+ARG GIT_LAST_TAG
+ARG GIT_BRANCH
+ARG GIT_REV
 
 # Builds again, this time it will be the actual source files being build
 RUN source /env-cargo && \
