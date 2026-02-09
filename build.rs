@@ -61,23 +61,38 @@ fn run(args: &[&str]) -> Result<String, std::io::Error> {
 fn version_from_git_info() -> Result<String, std::io::Error> {
     // The exact tag for the current commit, can be empty when
     // the current commit doesn't have an associated tag
-    let exact_tag = run(&["git", "describe", "--abbrev=0", "--tags", "--exact-match"]).ok();
+    let exact_tag = env::var("GIT_EXACT_TAG")
+        .ok()
+        .filter(|s| !s.is_empty())
+        .or_else(|| run(&["git", "describe", "--abbrev=0", "--tags", "--exact-match"]).ok());
+
     if let Some(ref exact) = exact_tag {
         println!("cargo:rustc-env=GIT_EXACT_TAG={exact}");
     }
 
     // The last available tag, equal to exact_tag when
     // the current commit is tagged
-    let last_tag = run(&["git", "describe", "--abbrev=0", "--tags"])?;
+    let last_tag = match env::var("GIT_LAST_TAG").ok().filter(|s| !s.is_empty()) {
+        Some(tag) => tag,
+        None => run(&["git", "describe", "--abbrev=0", "--tags"])?,
+    };
     println!("cargo:rustc-env=GIT_LAST_TAG={last_tag}");
 
     // The current branch name
-    let branch = run(&["git", "rev-parse", "--abbrev-ref", "HEAD"])?;
+    let branch = match env::var("GIT_BRANCH").ok().filter(|s| !s.is_empty()) {
+        Some(b) => b,
+        None => run(&["git", "rev-parse", "--abbrev-ref", "HEAD"])?,
+    };
     println!("cargo:rustc-env=GIT_BRANCH={branch}");
 
     // The current git commit hash
-    let rev = run(&["git", "rev-parse", "HEAD"])?;
-    let rev_short = rev.get(..8).unwrap_or_default();
+    let rev_short = match env::var("GIT_REV").ok().filter(|s| !s.is_empty()) {
+        Some(r) => r,
+        None => {
+            let rev = run(&["git", "rev-parse", "HEAD"])?;
+            rev.get(..8).unwrap_or_default().to_string()
+        }
+    };
     println!("cargo:rustc-env=GIT_REV={rev_short}");
 
     // Combined version
