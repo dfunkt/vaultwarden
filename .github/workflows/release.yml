@@ -30,6 +30,10 @@ jobs:
     name: Determine version information
     runs-on: ubuntu-24.04
     outputs:
+      git-exact-tag: ${{ steps.determine-version.outputs.GIT_EXACT_TAG }}
+      git-last-tag: ${{ steps.determine-version.outputs.GIT_LAST_TAG }}
+      git-branch: ${{ steps.determine-version.outputs.GIT_BRANCH }}
+      git-rev: ${{ steps.determine-version.outputs.GIT_REV }}
       source-version: ${{ steps.determine-version.outputs.SOURCE_VERSION }}
     steps:
       - name: Checkout
@@ -43,13 +47,28 @@ jobs:
         id: determine-version
         shell: bash
         run: |
-          # Get the Source Version for this release
+          # Exact tag
           GIT_EXACT_TAG="$(git describe --tags --abbrev=0 --exact-match 2>/dev/null || true)"
+          echo "GIT_EXACT_TAG=${GIT_EXACT_TAG}" | tee -a "${GITHUB_OUTPUT}"
+
+          # Last tag
+          GIT_LAST_TAG="$(git describe --tags --abbrev=0)"
+          echo "GIT_LAST_TAG=${GIT_LAST_TAG}" | tee -a "${GITHUB_OUTPUT}"
+
+          # Branch
+          GIT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+          echo "GIT_BRANCH=${GIT_BRANCH}" | tee -a "${GITHUB_OUTPUT}"
+
+          # Commit hash (short)
+          GIT_REV="${{ github.sha }}"
+          GIT_REV_SHORT="${GIT_REV:0:8}"
+          echo "GIT_REV=${GIT_REV_SHORT}" | tee -a "${GITHUB_OUTPUT}"
+
+          # Source version
           if [[ -n "${GIT_EXACT_TAG}" ]]; then
               echo "SOURCE_VERSION=${GIT_EXACT_TAG}" | tee -a "${GITHUB_OUTPUT}"
           else
-              GIT_LAST_TAG="$(git describe --tags --abbrev=0)"
-              echo "SOURCE_VERSION=${GIT_LAST_TAG}-${SOURCE_COMMIT:0:8}" | tee -a "${GITHUB_OUTPUT}"
+              echo "SOURCE_VERSION=${GIT_LAST_TAG}-${GIT_REV_SHORT}" | tee -a "${GITHUB_OUTPUT}"
           fi
 
   binaries:
@@ -66,8 +85,10 @@ jobs:
       id-token: write # for signing attestation(s) with GitHub OIDC Token
     with:
       set: |
-        *.args.BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
-        *.args.VW_VERSION=${{ needs.determine-version.outputs.source-version }}
+        *.args.GIT_EXACT_TAG=${{ needs.determine-version.outputs.git-exact-tag }}
+        *.args.GIT_LAST_TAG=${{ needs.determine-version.outputs.git-last-tag }}
+        *.args.GIT_BRANCH=${{ needs.determine-version.outputs.git-branch }}
+        *.args.GIT_REV=${{ needs.determine-version.outputs.git-rev }}
         *.args.SKIP_REBUILD=true
         *.pull=true
       cache: true
@@ -98,8 +119,10 @@ jobs:
       packages: write # Needed to upload packages and artifacts
     with:
       set: |
-        *.args.BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
-        *.args.VW_VERSION=${{ needs.determine-version.outputs.source-version }}
+        *.args.GIT_EXACT_TAG=${{ needs.determine-version.outputs.git-exact-tag }}
+        *.args.GIT_LAST_TAG=${{ needs.determine-version.outputs.git-last-tag }}
+        *.args.GIT_BRANCH=${{ needs.determine-version.outputs.git-branch }}
+        *.args.GIT_REV=${{ needs.determine-version.outputs.git-rev }}
         *.args.SKIP_REBUILD=true
         *.pull=true
       cache: true
