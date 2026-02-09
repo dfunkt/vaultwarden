@@ -66,6 +66,7 @@ jobs:
       id-token: write # for signing attestation(s) with GitHub OIDC Token
     with:
       set: |
+        *.args.BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
         *.args.VW_VERSION=${{ needs.determine-version.outputs.source-version }}
         *.args.SKIP_REBUILD=true
         *.pull=true
@@ -97,6 +98,7 @@ jobs:
       packages: write # Needed to upload packages and artifacts
     with:
       set: |
+        *.args.BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
         *.args.VW_VERSION=${{ needs.determine-version.outputs.source-version }}
         *.args.SKIP_REBUILD=true
         *.pull=true
