@@ -1036,14 +1036,10 @@ fn validate_config(cfg: &ConfigItems) -> Result<(), Error> {
         // Auth Team
         "pm-5594-safari-account-switching",
         // Autofill Team
-        "inline-menu-positioning-improvements",
-        "inline-menu-totp",
         "ssh-agent",
         // Key Management Team
         "ssh-key-vault-item",
         "pm-25373-windows-biometrics-v2",
-        // Tools
-        "export-attachments",
         // Mobile Team
         "anon-addy-self-host-alias",
         "simple-login-self-host-alias",

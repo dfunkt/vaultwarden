@@ -769,8 +769,16 @@ pub fn convert_json_key_lcase_first(src_json: Value) -> Value {
 pub fn parse_experimental_client_feature_flags(experimental_client_feature_flags: &str) -> HashMap<String, bool> {
     // These flags could still be configured, but are deprecated and not used anymore
     // To prevent old installations from starting filter these out and not error out
-    const DEPRECATED_FLAGS: &[&str] =
-        &["autofill-overlay", "autofill-v2", "browser-fileless-import", "extension-refresh", "fido2-vault-credentials"];
+    const DEPRECATED_FLAGS: &[&str] = &[
+        "autofill-overlay",
+        "autofill-v2",
+        "browser-fileless-import",
+        "export-attachments",
+        "extension-refresh",
+        "fido2-vault-credentials",
+        "inline-menu-positioning-improvements",
+        "inline-menu-totp",
+    ];
     experimental_client_feature_flags
         .split(',')
         .filter_map(|f| {
