@@ -218,7 +218,7 @@ impl<R> Cached<R> {
         Self {
             response,
             is_immutable,
-            ttl: 604_800, // 7 days
+            ttl: 2_592_000, // 30 days
         }
     }
 
