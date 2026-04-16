@@ -56,7 +56,7 @@ jobs:
       matrix:
         arch: ["amd64", "arm64"]
         base_image: &base-image
-          ["debian","alpine"]
+          ["debian","alpine","scratch"]
 
     steps:
       - name: Initialize QEMU binfmt support
@@ -162,7 +162,7 @@ jobs:
       - name: Configure build cache from/to
         env:
           GHCR_REPO: ${{ vars.GHCR_REPO }}
-          BASE_IMAGE: ${{ matrix.base_image }}
+          BASE_IMAGE: ${{ matrix.base_image == 'scratch' && 'alpine' || matrix.base_image }}
           NORMALIZED_ARCH: ${{ env.NORMALIZED_ARCH }}
         run: |
           #
