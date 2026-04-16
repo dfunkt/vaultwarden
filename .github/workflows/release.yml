@@ -155,7 +155,7 @@ jobs:
       - name: Configure build cache from/to
         env:
           GHCR_REPO: ${{ vars.GHCR_REPO }}
-          BASE_IMAGE: ${{ matrix.base_image }}
+          BASE_IMAGE: ${{ matrix.base_image == 'scratch' && 'alpine' || matrix.base_image }}
           NORMALIZED_ARCH: ${{ env.NORMALIZED_ARCH }}
         run: |
           #
