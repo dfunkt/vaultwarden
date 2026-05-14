@@ -269,6 +269,9 @@ http = { version = "1.4.0", optional = true }
 reqsign-aws-v4 = { version = "3.0.0", optional = true }
 reqsign-core = { version = "3.0.0", optional = true }
 
+[patch.crates-io]
+rocket = { git = "https://github.com/dfunkt/Rocket.git", rev = "84e82de6c967c027523b04094d962ecfc717df6b" }
+
 # Strip debuginfo from the release builds
 # The debug symbols are to provide better panic traces
 # Also enable fat LTO and use 1 codegen unit for optimizations
