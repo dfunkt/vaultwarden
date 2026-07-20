@@ -1553,6 +1553,7 @@ async fn delete_cipher_admin(cipher_id: CipherId, headers: Headers, conn: DbConn
     // permanent delete
 }
 
+#[suppress(dubious_payload)]
 #[delete("/ciphers", data = "<data>")]
 async fn delete_cipher_selected(
     data: Json<CipherIdsData>,
@@ -1586,6 +1587,7 @@ async fn delete_cipher_selected_put(
     // soft delete
 }
 
+#[suppress(dubious_payload)]
 #[delete("/ciphers/admin", data = "<data>")]
 async fn delete_cipher_selected_admin(
     data: Json<CipherIdsData>,
