@@ -1439,6 +1439,8 @@ pub const SUPPORTED_FEATURE_FLAGS: &[&str] = &[
     "pm-2035-passkey-unlock",
     "pm-25373-windows-biometrics-v2",
     "pm-26340-linux-biometrics-v2",
+    "enable-account-encryption-v2-jit-password-registration",
+    "pm-27278-v2-password-registration",
     // Mobile Team
     "anon-addy-self-host-alias",
     "simple-login-self-host-alias",
