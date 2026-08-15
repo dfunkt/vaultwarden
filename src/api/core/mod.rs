@@ -7,6 +7,7 @@ mod events;
 mod folders;
 mod organizations;
 mod public;
+mod reports;
 mod sends;
 pub mod webauthn_login;
 
@@ -47,6 +48,7 @@ pub fn routes() -> Vec<Route> {
     routes.append(&mut events::routes());
     routes.append(&mut folders::routes());
     routes.append(&mut organizations::routes());
+    routes.append(&mut reports::routes());
     routes.append(&mut two_factor::routes());
     routes.append(&mut webauthn_login::routes());
     routes.append(&mut sends::routes());
