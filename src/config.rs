@@ -1429,6 +1429,8 @@ pub const SUPPORTED_FEATURE_FLAGS: &[&str] = &[
     // Autofill Team
     "ssh-agent",
     "ssh-agent-v2",
+    // DIRT
+    "inno-passkey-directory-report",
     // Key Management Team
     "ssh-key-vault-item",
     "pm-25373-windows-biometrics-v2",
