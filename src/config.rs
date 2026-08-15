@@ -1432,6 +1432,8 @@ pub const SUPPORTED_FEATURE_FLAGS: &[&str] = &[
     "ssh-agent-v2",
     "windows-desktop-autotype",
     "windows-desktop-autotype-ga",
+    // DIRT
+    "inno-passkey-directory-report",
     // Key Management Team
     "biometrics-sdk-ipc",
     "windows-native-credential-sync",
