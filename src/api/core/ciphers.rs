@@ -206,7 +206,7 @@ async fn sync(data: SyncData, headers: Headers, client_version: Option<ClientVer
         "sends": sends_json,
         "userDecryption": sync_user_decryption(
             &master_password_unlock,
-            headers.user.v2_upgrade_token_json(),
+            &headers.user.v2_upgrade_token_json(),
             webauthn_prf_options,
         ),
         "object": "sync"
@@ -215,7 +215,7 @@ async fn sync(data: SyncData, headers: Headers, client_version: Option<ClientVer
 
 fn sync_user_decryption(
     master_password_unlock: &Value,
-    v2_upgrade_token: Value,
+    v2_upgrade_token: &Value,
     webauthn_prf_options: Vec<Value>,
 ) -> Value {
     let mut user_decryption = json!({
