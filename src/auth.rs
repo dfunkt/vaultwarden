@@ -15,8 +15,12 @@ use std::{
 use chrono::{DateTime, TimeDelta, Utc};
 use ipnet::IpNet;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, errors::ErrorKind};
+use ml_dsa::{
+    Generate, MlDsa44, SigningKey,
+    pkcs8::{DecodePrivateKey, EncodePrivateKey},
+    signature::Keypair,
+};
 use num_traits::FromPrimitive;
-use openssl::rsa::Rsa;
 use serde::{de::DeserializeOwned, ser::Serialize};
 
 use rocket::{
@@ -41,7 +45,7 @@ use crate::{
     sso,
 };
 
-const JWT_ALGORITHM: Algorithm = Algorithm::RS256;
+const JWT_ALGORITHM: Algorithm = Algorithm::MLDSA44;
 
 // Limit when BitWarden consider the token as expired
 pub static BW_EXPIRATION: LazyLock<TimeDelta> = LazyLock::new(|| TimeDelta::try_minutes(5).unwrap());
@@ -68,47 +72,52 @@ static JWT_REGISTER_VERIFY_ISSUER: LazyLock<String> =
 static JWT_2FA_REMEMBER_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|2faremember", CONFIG.domain_origin()));
 static JWT_PASSWORDLESS_ISSUER: LazyLock<String> = LazyLock::new(|| format!("{}|passwordless", CONFIG.domain_origin()));
 
-static PRIVATE_RSA_KEY: OnceLock<EncodingKey> = OnceLock::new();
-static PUBLIC_RSA_KEY: OnceLock<DecodingKey> = OnceLock::new();
+static PRIVATE_ML_DSA_KEY: OnceLock<EncodingKey> = OnceLock::new();
+static PUBLIC_ML_DSA_KEY: OnceLock<DecodingKey> = OnceLock::new();
 
 pub async fn initialize_keys() -> Result<(), Error> {
     use std::io::Error as IoError;
 
-    let rsa_key_filename = crate::storage::file_name(&CONFIG.private_rsa_key())
-        .ok_or_else(|| IoError::other("Private RSA key path missing filename"))?;
+    let ml_dsa_key_filename = crate::storage::file_name(&CONFIG.private_ml_dsa_key())
+        .ok_or_else(|| IoError::other("Private ML-DSA key path missing filename"))?;
 
-    let operator = CONFIG.opendal_operator_for_path_type(&PathType::RsaKey).map_err(IoError::other)?;
+    let operator = CONFIG.opendal_operator_for_path_type(&PathType::MlDsaKey).map_err(IoError::other)?;
 
-    let priv_key_buffer = match operator.read(&rsa_key_filename).await {
+    let priv_key_buffer = match operator.read(&ml_dsa_key_filename).await {
         Ok(buffer) => Some(buffer),
         Err(e) if e.kind() == opendal::ErrorKind::NotFound => None,
         Err(e) => return Err(e.into()),
     };
 
-    let (priv_key, priv_key_buffer) = if let Some(priv_key_buffer) = priv_key_buffer {
-        (Rsa::private_key_from_pem(priv_key_buffer.to_vec().as_slice())?, priv_key_buffer.to_vec())
+    let (signing_key, pkcs8_der) = if let Some(priv_key_buffer) = priv_key_buffer {
+        let bytes = priv_key_buffer.to_vec();
+        let signing_key = SigningKey::<MlDsa44>::from_pkcs8_der(&bytes)
+            .map_err(|e| IoError::other(format!("Invalid ML-DSA private key: {e}")))?;
+        (signing_key, bytes)
     } else {
-        let rsa_key = Rsa::generate(2048)?;
-        let priv_key_buffer = rsa_key.private_key_to_pem()?;
-        operator.write(&rsa_key_filename, priv_key_buffer.clone()).await?;
-        info!("Private key '{}' created correctly", CONFIG.private_rsa_key());
-        (rsa_key, priv_key_buffer)
+        let signing_key = SigningKey::<MlDsa44>::generate();
+        let pkcs8_der = signing_key.to_pkcs8_der().map_err(IoError::other)?.as_bytes().to_vec();
+        operator.write(&ml_dsa_key_filename, pkcs8_der.clone()).await?;
+        info!("Private key '{}' created correctly", CONFIG.private_ml_dsa_key());
+        (signing_key, pkcs8_der)
     };
-    let pub_key_buffer = priv_key.public_key_to_pem()?;
 
-    let enc = EncodingKey::from_rsa_pem(&priv_key_buffer)?;
-    let dec: DecodingKey = DecodingKey::from_rsa_pem(&pub_key_buffer)?;
-    if PRIVATE_RSA_KEY.set(enc).is_err() {
-        err!("PRIVATE_RSA_KEY must only be initialized once")
+    let raw_pub = signing_key.verifying_key().encode();
+
+    let enc = EncodingKey::from_mldsa_der(&pkcs8_der);
+    let dec = DecodingKey::from_mldsa_der(&raw_pub);
+
+    if PRIVATE_ML_DSA_KEY.set(enc).is_err() {
+        err!("PRIVATE_ML_DSA_KEY must only be initialized once")
     }
-    if PUBLIC_RSA_KEY.set(dec).is_err() {
-        err!("PUBLIC_RSA_KEY must only be initialized once")
+    if PUBLIC_ML_DSA_KEY.set(dec).is_err() {
+        err!("PUBLIC_ML_DSA_KEY must only be initialized once")
     }
     Ok(())
 }
 
 pub fn encode_jwt<T: Serialize>(claims: &T) -> String {
-    match jsonwebtoken::encode(&JWT_HEADER, claims, PRIVATE_RSA_KEY.wait()) {
+    match jsonwebtoken::encode(&JWT_HEADER, claims, PRIVATE_ML_DSA_KEY.wait()) {
         Ok(token) => token,
         Err(e) => panic!("Error encoding jwt {e}"),
     }
@@ -122,7 +131,7 @@ pub fn decode_jwt<T: DeserializeOwned>(token: &str, issuer: String) -> Result<T,
     validation.set_issuer(&[issuer]);
 
     let token = token.replace(char::is_whitespace, "");
-    match jsonwebtoken::decode(&token, PUBLIC_RSA_KEY.wait(), &validation) {
+    match jsonwebtoken::decode(&token, PUBLIC_ML_DSA_KEY.wait(), &validation) {
         Ok(d) => Ok(d.claims),
         Err(err) => match *err.kind() {
             ErrorKind::InvalidToken => err!("Token is invalid"),

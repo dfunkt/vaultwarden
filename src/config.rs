@@ -516,7 +516,7 @@ make_config! {
         /// Templates folder
         templates_folder:       String, false,  auto,   |c| storage::join_path(&c.data_folder, "templates");
         /// Session JWT key
-        rsa_key_filename:       String, false,  auto,   |c| storage::join_path(&c.data_folder, "rsa_key");
+        ml_dsa_key_filename:       String, false,  auto,   |c| storage::join_path(&c.data_folder, "ml_dsa_key");
         /// Web vault folder
         web_vault_folder:       String, false,  def,    "web-vault/".to_owned();
     },
@@ -1413,7 +1413,7 @@ pub enum PathType {
     IconCache,
     Attachments,
     Sends,
-    RsaKey,
+    MlDsaKey,
 }
 
 // Official available feature flags can be found here:
@@ -1605,8 +1605,8 @@ impl Config {
         Ok(())
     }
 
-    pub fn private_rsa_key(&self) -> String {
-        storage::with_extension(&self.rsa_key_filename(), "pem")
+    pub fn private_ml_dsa_key(&self) -> String {
+        storage::with_extension(&self.ml_dsa_key_filename(), "der")
     }
     pub fn mail_enabled(&self) -> bool {
         let inner = &self.inner.read().unwrap().config;
@@ -1647,8 +1647,8 @@ impl Config {
             PathType::IconCache => self.icon_cache_folder(),
             PathType::Attachments => self.attachments_folder(),
             PathType::Sends => self.sends_folder(),
-            PathType::RsaKey => storage::parent(&self.private_rsa_key())
-                .ok_or_else(|| std::io::Error::other("Failed to get directory of RSA key file"))?,
+            PathType::MlDsaKey => storage::parent(&self.private_ml_dsa_key())
+                .ok_or_else(|| std::io::Error::other("Failed to get directory of ML-DSA key file"))?,
         };
 
         storage::operator_for_path(&path)
