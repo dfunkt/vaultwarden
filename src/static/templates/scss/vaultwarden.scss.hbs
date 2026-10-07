@@ -48,6 +48,7 @@ a[href$="/settings/sponsored-families"] {
 }
 {{/if}}
 
+{{#if (not passkey_login_allowed)}}
 /* Hide the `Log in with passkey` settings */
 app-user-layout app-password-settings app-webauthn-login-settings {
   @extend %vw-hide;
@@ -56,6 +57,7 @@ app-user-layout app-password-settings app-webauthn-login-settings {
 .vw-passkey-login {
   @extend %vw-hide;
 }
+{{/if}}
 
 /* Hide the or text followed by the two buttons hidden above */
 {{#if (or (not sso_enabled) sso_only)}}
